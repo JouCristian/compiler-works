@@ -78,7 +78,7 @@ void lexer_scan_file(FILE *fp) {
 			token.type = TOKEN_NUMBER;
 			token.line = line;
 			token.lexeme[len++] = (char)ch;
-			while((ch = fgetc(fp) != EOF) &&
+			while(((ch = fgetc(fp)) != EOF) &&
 					isalnum((unsigned char)ch)) {
 				if(len < MAX_TOKEN_LEN - 1) {
 					if(isalpha((unsigned char)ch)) {

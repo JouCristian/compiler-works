@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "ansi.h"
+#include "common.h"
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -8,6 +9,16 @@
 static const char *const keywords[] = {
 	"if", "else", "for", "while",
 	"int", "write", "read"
+};
+
+static const int delimiters[] = {
+	',','(',')',
+	';','{','}'
+};
+
+static const int single_operators[] = {
+	'+','-','*','/',
+	'=','>','<'
 };
 
 static const char *const tokentypes[] = {
@@ -61,9 +72,29 @@ static void emit_lexer_statistics(const LexerState *lexerstate) {
 }
 
 static bool is_keyword(const char* word) {
-	size_t count = sizeof(keywords) / sizeof(keywords[0]);
+	size_t count = ARRLEN(keywords);
 	for(size_t i = 0; i < count; i ++) {
 		if(strcmp(word,keywords[i]) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool is_delimiter(int ch) {
+	size_t count = ARRLEN(delimiters);
+	for(size_t i = 0; i < count; i ++) {
+		if(ch == delimiters[i]) {
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool is_operator(int ch) {
+	size_t count = ARRLEN(single_operators);
+	for(size_t i = 0; i < count; i ++) {
+		if(ch == single_operators[i]) {
 			return true;
 		}
 	}
@@ -120,7 +151,7 @@ void lexer_scan_file(FILE *fp) {
 			token.type = TOKEN_NUMBER;
 			token.line = line;
 			token.lexeme[len++] = (char)ch;
-			while(((ch = fgetc(fp)) != EOF) &&
+			while((ch = fgetc(fp)) != EOF &&
 					isalnum((unsigned char)ch)) {
 				if(len < MAX_TOKEN_LEN - 1) {
 					if(isalpha((unsigned char)ch)) {
@@ -141,6 +172,43 @@ void lexer_scan_file(FILE *fp) {
 			}
 			//Test for debug
 			emit_token(&token,overflow,&lexerstate);
+		}
+		else if(is_delimiter(ch)) {
+			Token token = {0};
+			size_t len = 0;
+			token.type = TOKEN_DELIMITER;
+			token.line = line;
+			token.lexeme[len++] = (char)ch;
+			token.lexeme[len] = '\0';
+			emit_token(&token,false,&lexerstate);
+		}
+		else if(is_operator(ch)) {
+			Token token = {0};
+			size_t len = 0;
+			token.line = line;
+			token.lexeme[len++] = (char)ch;
+			while((ch = fgetc(fp)) != EOF &&
+					is_operator(ch)) {
+				char first_op = token.lexeme[0];
+				if(first_op == '>' ||
+					first_op == '<' ||
+					first_op == '!' ||
+					first_op == '=') {
+					if(ch == '=') {
+						token.lexeme[len++] = (char)ch;
+						token.type = TOKEN_OPERATOR;
+					} else {
+						token.type = TOKEN_WRONG;
+					}
+				}
+			}
+			if(ch != EOF) {
+				ungetc(ch,fp);
+			}
+			if(len > 2) {
+				token.type = TOKEN_WRONG;
+			}
+			emit_token(&token,false,&lexerstate);
 		}
 	}
 	emit_lexer_statistics(&lexerstate);

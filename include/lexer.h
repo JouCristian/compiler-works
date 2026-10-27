@@ -20,6 +20,14 @@ typedef struct {
 	int line;
 } Token;
 
+typedef struct {
+	unsigned int token_count;
+	unsigned int keyword_count;
+	unsigned int error_count;
+	unsigned int error_lines;
+	int last_error_line;
+} LexerState;
+
 void lexer_scan_file(FILE *fp);
 
 #endif

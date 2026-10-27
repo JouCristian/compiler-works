@@ -25,7 +25,21 @@ static const char *const typecolors[] = {
 	[TOKEN_WRONG]      = ANSI_FG_RED
 };
 
-static void emit_token(const Token *token, const bool overflow) {
+static void emit_token(const Token *token,
+	       	       const bool overflow,
+	       	       LexerState *lexerstate) {
+	if(token->type == TOKEN_WRONG) {
+		lexerstate->error_count++;
+		if(lexerstate->last_error_line != token->line) {
+			lexerstate->error_lines++;
+			lexerstate->last_error_line = token->line;
+		}
+	} else {
+		lexerstate->token_count++;
+		if(token->type == TOKEN_KEYWORD) {
+			lexerstate->keyword_count++;
+		}
+	}
 	FILE *out = (token->type == TOKEN_WRONG)
 		? stderr
 		: stdout;
@@ -36,6 +50,14 @@ static void emit_token(const Token *token, const bool overflow) {
 		token->lexeme,
 		overflow ? "..." : "",
 		token->line);
+}
+
+static void emit_lexer_statistics(const LexerState *lexerstate) {
+	printf("\n===== Lexer Statistics =====\n");
+	printf("Valid Tokens : %u\n", lexerstate->token_count);
+	printf("Keywords     : %u\n", lexerstate->keyword_count);
+	printf("Errors       : %u\n", lexerstate->error_count);
+	printf("Error Lines  : %u\n", lexerstate->error_lines);	
 }
 
 static bool is_keyword(const char* word) {
@@ -51,6 +73,7 @@ static bool is_keyword(const char* word) {
 void lexer_scan_file(FILE *fp) {
 	int ch;
 	int line = 1;
+	LexerState lexerstate = {0};
 
 	while((ch = fgetc(fp)) != EOF) {
 		if((unsigned char)ch == '\n') {
@@ -86,7 +109,7 @@ void lexer_scan_file(FILE *fp) {
 					: TOKEN_IDENTIFIER;
 			}
 			//Test for Debug
-			emit_token(&token,overflow);
+			emit_token(&token,overflow,&lexerstate);
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -113,14 +136,12 @@ void lexer_scan_file(FILE *fp) {
 				ungetc(ch,fp);
 			}
 
-			if(overflow) {
+			if(overflow || (leading_zero && (len > 1))) {
 				token.type = TOKEN_WRONG;
-			} else if(leading_zero && (len > 1)) {
-				token.type = TOKEN_WRONG;
-			} else {
-				//Test for debug
-				emit_token(&token,overflow);
 			}
+			//Test for debug
+			emit_token(&token,overflow,&lexerstate);
 		}
 	}
+	emit_lexer_statistics(&lexerstate);
 }

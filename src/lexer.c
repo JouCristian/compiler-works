@@ -16,11 +16,10 @@ static const int delimiters[] = {
 	';','{','}'
 };
 
-static const int single_operators[] = {
+static const int operator_starts[] = {
 	'+','-','*','/',
-	'=','>','<'
+	'=','>','<','!'
 };
-
 static const char *const tokentypes[] = {
 	"KEYWORD","IDENTIFIER",
 	"NUMBER","OPERATOR",
@@ -91,10 +90,10 @@ static bool is_delimiter(int ch) {
 	return false;
 }
 
-static bool is_operator(int ch) {
-	size_t count = ARRLEN(single_operators);
+static bool is_operator_start(int ch) {
+	size_t count = ARRLEN(operator_starts);
 	for(size_t i = 0; i < count; i ++) {
-		if(ch == single_operators[i]) {
+		if(ch == operator_starts[i]) {
 			return true;
 		}
 	}
@@ -182,31 +181,27 @@ void lexer_scan_file(FILE *fp) {
 			token.lexeme[len] = '\0';
 			emit_token(&token,false,&lexerstate);
 		}
-		else if(is_operator(ch)) {
+		else if(is_operator_start(ch)) {
 			Token token = {0};
-			size_t len = 0;
+			token.type = TOKEN_OPERATOR;
 			token.line = line;
-			token.lexeme[len++] = (char)ch;
-			while((ch = fgetc(fp)) != EOF &&
-					is_operator(ch)) {
-				char first_op = token.lexeme[0];
-				if(first_op == '>' ||
-					first_op == '<' ||
-					first_op == '!' ||
-					first_op == '=') {
-					if(ch == '=') {
-						token.lexeme[len++] = (char)ch;
-						token.type = TOKEN_OPERATOR;
-					} else {
+			token.lexeme[0] = (char)ch;
+			token.lexeme[1] = '\0';
+
+			if(ch == '>' || ch == '<' ||
+			   ch == '=' || ch == '!') {
+				int next = fgetc(fp);
+				if(next == '=') {
+					token.lexeme[1] = '=';
+					token.lexeme[2] = '\0';
+				} else {
+					if(next != EOF) {
+						ungetc(next,fp);
+					}
+					if(ch == '!') {
 						token.type = TOKEN_WRONG;
 					}
 				}
-			}
-			if(ch != EOF) {
-				ungetc(ch,fp);
-			}
-			if(len > 2) {
-				token.type = TOKEN_WRONG;
 			}
 			emit_token(&token,false,&lexerstate);
 		}

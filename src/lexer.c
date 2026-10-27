@@ -17,7 +17,7 @@ static const int delimiters[] = {
 };
 
 static const int operator_starts[] = {
-	'+','-','*','/',
+	'+','-','*',
 	'=','>','<','!'
 };
 static const char *const tokentypes[] = {
@@ -96,6 +96,31 @@ static bool is_operator_start(int ch) {
 		if(ch == operator_starts[i]) {
 			return true;
 		}
+	}
+	return false;
+}
+
+static void skip_line_comment(FILE *fp, int *line) {
+	int ch;
+	while((ch = fgetc(fp)) != EOF) {
+		if(ch == '\n') {
+			(*line)++;
+			return;
+		}
+	}
+}
+
+static bool skip_block_comment(FILE *fp, int *line) {
+	int ch;
+	int prev;
+	while((ch = fgetc(fp)) != EOF) {
+		if(ch == '\n') {
+			(*line)++;
+		}
+		if(prev == '*' && ch == '/') {
+			return true;
+		}
+		prev = ch;
 	}
 	return false;
 }
@@ -204,6 +229,35 @@ void lexer_scan_file(FILE *fp) {
 				}
 			}
 			emit_token(&token,false,&lexerstate);
+		}
+		else if(ch == '/') {
+			int next = fgetc(fp);
+			if(next == '/') {
+				skip_line_comment(fp,&line);
+			} else if(next == '*') {
+				int start_line = line;
+				if(!skip_block_comment(fp,&line)) {
+					Token token = {0};
+					token.type = TOKEN_WRONG;
+					token.line = start_line;
+					token.lexeme[0] = '/';
+					token.lexeme[1] = '*';
+					emit_token(&token,false,&lexerstate);
+					fprintf(stderr,
+						"Unterminated comment at line %d\n",
+						start_line);
+				}
+			} else {
+				Token token = {0};
+				token.type = TOKEN_OPERATOR;
+				token.line = line;
+				token.lexeme[0] = (char)ch;
+				token.lexeme[1] = '\0';
+				if(next != EOF) {
+					ungetc(next,fp);
+				}
+				emit_token(&token,false,&lexerstate);
+			}
 		}
 	}
 	emit_lexer_statistics(&lexerstate);

@@ -25,6 +25,19 @@ static const char *const typecolors[] = {
 	[TOKEN_WRONG]      = ANSI_FG_RED
 };
 
+static void emit_token(const Token *token, const bool overflow) {
+	FILE *out = (token->type == TOKEN_WRONG)
+		? stderr
+		: stdout;
+	fprintf(out,"%s[%-10s]" ANSI_NONE "\t%.*s%s\tline(%d)\n",
+		typecolors[token->type],
+		tokentypes[token->type],
+		overflow ? 20 : (int)strlen(token->lexeme),
+		token->lexeme,
+		overflow ? "..." : "",
+		token->line);
+}
+
 static bool is_keyword(const char* word) {
 	size_t count = sizeof(keywords) / sizeof(keywords[0]);
 	for(size_t i = 0; i < count; i ++) {
@@ -66,19 +79,14 @@ void lexer_scan_file(FILE *fp) {
 			}
 
 			if(overflow) {
-				fprintf(stderr,ANSI_FMT("[ERROR]",ANSI_FG_RED)":The token is too long!\n");
+				token.type = TOKEN_WRONG;
 			} else {
 				token.type = is_keyword(token.lexeme)
 					? TOKEN_KEYWORD
 					: TOKEN_IDENTIFIER;
-
-				//Test for Debug
-				printf("%s[%s]"ANSI_NONE"\t%s\tline(%d)\n",
-						typecolors[token.type],
-						tokentypes[token.type],
-						token.lexeme,
-						token.line);
 			}
+			//Test for Debug
+			emit_token(&token,overflow);
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -106,20 +114,12 @@ void lexer_scan_file(FILE *fp) {
 			}
 
 			if(overflow) {
-				fprintf(stderr,ANSI_FMT("[ERROR]",ANSI_FG_RED)":The token is too long!\n");
-			} else if(token.type == TOKEN_WRONG) {
-				fprintf(stderr,ANSI_FMT("[WRONG TOKEN]",ANSI_FG_RED)":%s can't be identified! line(%d)\n",
-						token.lexeme,token.line);
+				token.type = TOKEN_WRONG;
 			} else if(leading_zero && (len > 1)) {
-				fprintf(stderr,ANSI_FMT("[WRONG TOKEN]",ANSI_FG_RED)":%s can't be identified! line(%d)\n",
-						token.lexeme,token.line);
+				token.type = TOKEN_WRONG;
 			} else {
 				//Test for debug
-				printf("%s[%s]"ANSI_NONE"\t%s\tline(%d)\n",
-						typecolors[token.type],
-						tokentypes[token.type],
-						token.lexeme,
-						token.line);
+				emit_token(&token,overflow);
 			}
 		}
 	}

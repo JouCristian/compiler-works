@@ -13,9 +13,21 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	lexer_scan_file(fp);
+	FILE *lex_out = fopen("docs/lex.txt","w");
+	if(lex_out == NULL) {
+		perror("fopen docs/lex.txt");
+		fclose(fp);
+		return 1;
+	}
+
+	lexer_scan_file(fp,lex_out);
 	
 	fclose(fp);
+
+	if(fclose(lex_out) == EOF) {
+		perror("fclose docs/lex.txt");
+		return 1;
+	}
 
 	return 0;
 }

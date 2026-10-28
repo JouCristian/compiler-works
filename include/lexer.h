@@ -28,6 +28,6 @@ typedef struct {
 	int last_error_line;
 } LexerState;
 
-void lexer_scan_file(FILE *fp);
+void lexer_scan_file(FILE *fp, FILE *lex_out);
 
 #endif

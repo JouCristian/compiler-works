@@ -35,9 +35,20 @@ static const char *const typecolors[] = {
 	[TOKEN_WRONG]      = ANSI_FG_RED
 };
 
+static void write_token(FILE *out, const Token *token) {
+	if(token->type == TOKEN_WRONG) {
+		return;
+	}
+	fprintf(out, "%-10s\t%-24s\t(%d)\n",
+		tokentypes[token->type],
+		token->lexeme,
+		token->line);
+}
+
 static void emit_token(const Token *token,
 	       	       const bool overflow,
-	       	       LexerState *lexerstate) {
+	       	       LexerState *lexerstate,
+		       FILE *lex_out) {
 	if(token->type == TOKEN_WRONG) {
 		lexerstate->error_count++;
 		if(lexerstate->last_error_line != token->line) {
@@ -52,14 +63,18 @@ static void emit_token(const Token *token,
 	}
 	FILE *out = (token->type == TOKEN_WRONG)
 		? stderr
-		: stdout;
-	fprintf(out,"%s[%-10s]" ANSI_NONE "\t%.*s%s\tline(%d)\n",
-		typecolors[token->type],
-		tokentypes[token->type],
-		overflow ? 20 : (int)strlen(token->lexeme),
-		token->lexeme,
-		overflow ? "..." : "",
-		token->line);
+		: lex_out;
+	if(out == stderr) {	
+		fprintf(out,"%s[%-10s]" ANSI_NONE "\t%.*s%s\tline(%d)\n",
+			typecolors[token->type],
+			tokentypes[token->type],
+			overflow ? 20 : (int)strlen(token->lexeme),
+			token->lexeme,
+			overflow ? "..." : "",
+			token->line);
+	} else {
+		write_token(out,token);	
+	}
 }
 
 static void emit_lexer_statistics(const LexerState *lexerstate) {
@@ -112,7 +127,7 @@ static void skip_line_comment(FILE *fp, int *line) {
 
 static bool skip_block_comment(FILE *fp, int *line) {
 	int ch;
-	int prev;
+	int prev = 0;
 	while((ch = fgetc(fp)) != EOF) {
 		if(ch == '\n') {
 			(*line)++;
@@ -125,7 +140,11 @@ static bool skip_block_comment(FILE *fp, int *line) {
 	return false;
 }
 
-void lexer_scan_file(FILE *fp) {
+void lexer_scan_file(FILE *fp, FILE *lex_out) {
+	fprintf(lex_out,"%-10s\t%-24s\t%s\n",
+		"type",
+		"character",
+		"line");
 	int ch;
 	int line = 1;
 	LexerState lexerstate = {0};
@@ -133,6 +152,9 @@ void lexer_scan_file(FILE *fp) {
 	while((ch = fgetc(fp)) != EOF) {
 		if((unsigned char)ch == '\n') {
 			line++;
+			continue;
+		}
+		if(isspace((unsigned char)ch)) {
 			continue;
 		}
 		if(isalpha((unsigned char)ch)) {
@@ -164,7 +186,7 @@ void lexer_scan_file(FILE *fp) {
 					: TOKEN_IDENTIFIER;
 			}
 			//Test for Debug
-			emit_token(&token,overflow,&lexerstate);
+			emit_token(&token,overflow,&lexerstate,lex_out);
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -195,7 +217,7 @@ void lexer_scan_file(FILE *fp) {
 				token.type = TOKEN_WRONG;
 			}
 			//Test for debug
-			emit_token(&token,overflow,&lexerstate);
+			emit_token(&token,overflow,&lexerstate,lex_out);
 		}
 		else if(is_delimiter(ch)) {
 			Token token = {0};
@@ -204,7 +226,8 @@ void lexer_scan_file(FILE *fp) {
 			token.line = line;
 			token.lexeme[len++] = (char)ch;
 			token.lexeme[len] = '\0';
-			emit_token(&token,false,&lexerstate);
+			//Test for debug
+			emit_token(&token,false,&lexerstate,lex_out);
 		}
 		else if(is_operator_start(ch)) {
 			Token token = {0};
@@ -228,7 +251,8 @@ void lexer_scan_file(FILE *fp) {
 					}
 				}
 			}
-			emit_token(&token,false,&lexerstate);
+			//Test for debug
+			emit_token(&token,false,&lexerstate,lex_out);
 		}
 		else if(ch == '/') {
 			int next = fgetc(fp);
@@ -242,7 +266,8 @@ void lexer_scan_file(FILE *fp) {
 					token.line = start_line;
 					token.lexeme[0] = '/';
 					token.lexeme[1] = '*';
-					emit_token(&token,false,&lexerstate);
+					//Test for debug
+					emit_token(&token,false,&lexerstate,lex_out);
 					fprintf(stderr,
 						"Unterminated comment at line %d\n",
 						start_line);
@@ -256,8 +281,18 @@ void lexer_scan_file(FILE *fp) {
 				if(next != EOF) {
 					ungetc(next,fp);
 				}
-				emit_token(&token,false,&lexerstate);
+				//Test for debug
+				emit_token(&token,false,&lexerstate,lex_out);
 			}
+		}
+		else {
+			Token token = {0};
+			token.type = TOKEN_WRONG;
+			token.line = line;
+			token.lexeme[0] = (char)ch;
+			token.lexeme[1] = '\0';
+			//Test for debug
+			emit_token(&token,false,&lexerstate,lex_out);
 		}
 	}
 	emit_lexer_statistics(&lexerstate);

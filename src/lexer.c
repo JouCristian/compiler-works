@@ -45,10 +45,31 @@ static void write_token(FILE *out, const Token *token) {
 		token->line);
 }
 
+static void print_token(FILE *out, 
+		const bool overflow, 
+		const Token *token) {
+
+	const int column_width = 16;
+	const char *label = tokentypes[token->type];
+	int used = (int)strlen(label) + 2;
+	int padding = column_width - used;
+
+	fprintf(out,"%s[%s]" ANSI_NONE "%*s\t%*s%s\tline(%d)\n",
+			typecolors[token->type],
+			tokentypes[token->type],
+			padding,"",
+			overflow ? 20 : (int)strlen(token->lexeme),
+			token->lexeme,
+			overflow ? "..." : "",
+			token->line);
+}
+
 static void emit_token(const Token *token,
 	       	       const bool overflow,
 	       	       LexerState *lexerstate,
-		       FILE *lex_out) {
+		       FILE *lex_out,
+		       TerminalMode mode) {
+
 	if(token->type == TOKEN_WRONG) {
 		lexerstate->error_count++;
 		if(lexerstate->last_error_line != token->line) {
@@ -65,15 +86,12 @@ static void emit_token(const Token *token,
 		? stderr
 		: lex_out;
 	if(out == stderr) {	
-		fprintf(out,"%s[%-10s]" ANSI_NONE "\t%.*s%s\tline(%d)\n",
-			typecolors[token->type],
-			tokentypes[token->type],
-			overflow ? 20 : (int)strlen(token->lexeme),
-			token->lexeme,
-			overflow ? "..." : "",
-			token->line);
+		print_token(out,overflow,token);
 	} else {
-		write_token(out,token);	
+		if(mode == OUTPUT_ALL_TOKENS) {
+			print_token(stderr,overflow,token);
+		}
+		write_token(out,token);
 	}
 }
 
@@ -140,7 +158,7 @@ static bool skip_block_comment(FILE *fp, int *line) {
 	return false;
 }
 
-void lexer_scan_file(FILE *fp, FILE *lex_out) {
+void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 	fprintf(lex_out,"%-10s\t%-24s\t%s\n",
 		"type",
 		"character",
@@ -185,8 +203,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 					? TOKEN_KEYWORD
 					: TOKEN_IDENTIFIER;
 			}
-			//Test for Debug
-			emit_token(&token,overflow,&lexerstate,lex_out);
+
+			emit_token(&token,overflow,&lexerstate,lex_out,mode);
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -216,8 +234,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 			if(overflow || (leading_zero && (len > 1))) {
 				token.type = TOKEN_WRONG;
 			}
-			//Test for debug
-			emit_token(&token,overflow,&lexerstate,lex_out);
+
+			emit_token(&token,overflow,&lexerstate,lex_out,mode);
 		}
 		else if(is_delimiter(ch)) {
 			Token token = {0};
@@ -226,8 +244,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 			token.line = line;
 			token.lexeme[len++] = (char)ch;
 			token.lexeme[len] = '\0';
-			//Test for debug
-			emit_token(&token,false,&lexerstate,lex_out);
+
+			emit_token(&token,false,&lexerstate,lex_out,mode);
 		}
 		else if(is_operator_start(ch)) {
 			Token token = {0};
@@ -251,8 +269,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 					}
 				}
 			}
-			//Test for debug
-			emit_token(&token,false,&lexerstate,lex_out);
+
+			emit_token(&token,false,&lexerstate,lex_out,mode);
 		}
 		else if(ch == '/') {
 			int next = fgetc(fp);
@@ -266,8 +284,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 					token.line = start_line;
 					token.lexeme[0] = '/';
 					token.lexeme[1] = '*';
-					//Test for debug
-					emit_token(&token,false,&lexerstate,lex_out);
+
+					emit_token(&token,false,&lexerstate,lex_out,mode);
 					fprintf(stderr,
 						"Unterminated comment at line %d\n",
 						start_line);
@@ -281,8 +299,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 				if(next != EOF) {
 					ungetc(next,fp);
 				}
-				//Test for debug
-				emit_token(&token,false,&lexerstate,lex_out);
+
+				emit_token(&token,false,&lexerstate,lex_out,mode);
 			}
 		}
 		else {
@@ -291,8 +309,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out) {
 			token.line = line;
 			token.lexeme[0] = (char)ch;
 			token.lexeme[1] = '\0';
-			//Test for debug
-			emit_token(&token,false,&lexerstate,lex_out);
+
+			emit_token(&token,false,&lexerstate,lex_out,mode);
 		}
 	}
 	emit_lexer_statistics(&lexerstate);

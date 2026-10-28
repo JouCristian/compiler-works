@@ -6,6 +6,11 @@
 #define MAX_TOKEN_LEN 128
 
 typedef enum {
+	OUTPUT_ERRORS_ONLY,
+	OUTPUT_ALL_TOKENS
+} TerminalMode;
+
+typedef enum {
 	TOKEN_KEYWORD,
 	TOKEN_IDENTIFIER,
 	TOKEN_NUMBER,
@@ -28,6 +33,6 @@ typedef struct {
 	int last_error_line;
 } LexerState;
 
-void lexer_scan_file(FILE *fp, FILE *lex_out);
+void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode);
 
 #endif

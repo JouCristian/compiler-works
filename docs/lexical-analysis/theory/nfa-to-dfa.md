@@ -23,7 +23,7 @@ S --ε--> B0
 定义 `move(I,a)` 为状态集 `I` 输入 `a` 可达的状态集合，`ε-closure(I)` 为其 ε 可达闭包。构造后的 DFA 转移为：
 
 ```math
-\delta_D(I,a)=\varepsilon\text{-closure}(\operatorname{move}(I,a))
+\delta_D(I,a)=\varepsilon\text{-closure}(\mathrm{move}(I,a))
 ```
 
 初始状态：

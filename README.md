@@ -21,17 +21,17 @@
 ## 功能与实现
 
 - **词法识别**：标识符、七个保留字、无符号整数、六个分界符、十一个运算符。
-- **注释处理**：识别并跳过单行注释 \`//\` 与块注释 \`/*...*/\`，同步维护行号。
+- **注释处理**：识别并跳过单行注释 `//` 与块注释 `/*...*/`，同步维护行号。
 - **错误检测**：识别非法字符、非法数字词素、超长词素及未闭合块注释；分别统计错误数与错误行数。
-- **输出模式**：默认只显示错误和统计；指定 \`--all-tokens\` 可查看 ANSI 彩色 Token 流。
-- **文件输出**：合法 Token 的类别、词素和行号写入 \`docs/lex.txt\`，不含颜色控制码或非法词素。
+- **输出模式**：默认只显示错误和统计；指定 `--all-tokens` 可查看 ANSI 彩色 Token 流。
+- **文件输出**：合法 Token 的类别、词素和行号写入 `docs/lex.txt`，不含颜色控制码或非法词素。
 - **工程组织**：C11、GCC、Makefile、模块化头文件与独立测试集。
 
 ## 构建与运行
 
 运行环境为 Linux，使用 GCC（C11）与 GNU Make。**命令从仓库根目录执行**：
 
-\`\`\`bash
+```bash
 make clean && make
 
 # 指定测试源程序：错误与统计
@@ -43,13 +43,13 @@ make clean && make
 # 输出文件核验
 cat docs/lex.txt
 wc -l docs/lex.txt
-\`\`\`
+```
 
-也可执行 \`make run\` 使用默认 \`tests/test.c\`，或执行 \`make run TESTS=tests/operatorsTest.c\` 运行专项用例。
+也可执行 `make run` 使用默认 `tests/test.c`，或执行 `make run TESTS=tests/operatorsTest.c` 运行专项用例。
 
 ## 仓库结构
 
-\`\`\`text
+```text
 compiler_works/
 ├── src/                         # main.c、lexer.c
 ├── include/                     # Lexer API、Token、ANSI 及公共宏
@@ -64,7 +64,7 @@ compiler_works/
 │   └── lex.txt                  # 运行时生成，不纳入版本控制
 ├── Makefile
 └── .gitignore
-\`\`\`
+```
 
 ## 设计文档
 
@@ -85,4 +85,4 @@ compiler_works/
 | 实验二 | 语法分析与递归下降 | 后续开发 |
 | 实验三 | 语义分析与中间代码生成 | 后续开发 |
 
-**设计说明：** 本项目针对指导书定义的简化类 C 语言，不是完整的 C 编译器。当前 \`lexer.c\` 通过字符分类、\`fgetc()\` 与 \`ungetc()\` 实现手写扫描；文档中的 NFA、DFA 和状态最小化用于对应词法规则的理论推导，并非代码运行时使用的 DFA 表。
+**设计说明：** 本项目针对指导书定义的简化类 C 语言，不是完整的 C 编译器。当前 `lexer.c` 通过字符分类、`fgetc()` 与 `ungetc()` 实现手写扫描；文档中的 NFA、DFA 和状态最小化用于对应词法规则的理论推导，并非代码运行时使用的 DFA 表。

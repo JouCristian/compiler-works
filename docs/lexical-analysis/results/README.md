@@ -1,7 +1,7 @@
 # 实验一 · 词法分析验收结果
 
 **验收日期：2026-10-29**  
-**程序：C11 词法分析器（\`src/main.c\`、\`src/lexer.c\`）**  
+**程序：C11 词法分析器（`src/main.c`、`src/lexer.c`）**  
 **测试输入：[instructor_lexer_test.txt](../../../tests/instructor_lexer_test.txt)**  
 **运行环境：Ubuntu / GCC / GNU Make**
 
@@ -15,14 +15,14 @@
 | 关键字 | **15** | 15 | 一致 |
 | 词法错误 | **7** | 7 | 一致 |
 | 错误行数 | **6** | 6 | 一致 |
-| \`docs/lex.txt\` 行数 | **90** | 90（含 1 行表头） | 一致 |
+| `docs/lex.txt` 行数 | **90** | 90（含 1 行表头） | 一致 |
 
 ### 默认模式 · 错误输出与统计
 
-\`\`\`bash
+```bash
 make clean && make
 ./build/lexer tests/instructor_lexer_test.txt
-\`\`\`
+```
 
 [![默认模式的错误报告与统计](screenshots/01-errors-and-statistics.png)](screenshots/01-errors-and-statistics.png)
 
@@ -30,21 +30,21 @@ make clean && make
 
 | 源码行号 | 词素 | 检测结果 |
 | ---: | --- | --- |
-| 3 | \`2a\` | 数字开头的非法字母数字串 |
-| 4 | \`@\` | 未定义字符 |
-| 7 | \`.\` | 本实验不支持浮点数词法 |
-| 8 | \`0100\` | 非法前导零整数 |
-| 13 | \`|\` | 第一个不支持的竖线字符 |
-| 13 | \`|\` | 第二个不支持的竖线字符 |
-| 20 | \`/*\` | 块注释未闭合（EOF） |
+| 3 | `2a` | 数字开头的非法字母数字串 |
+| 4 | `@` | 未定义字符 |
+| 7 | `.` | 本实验不支持浮点数词法 |
+| 8 | `0100` | 非法前导零整数 |
+| 13 | &#124; | 第一个不支持的竖线字符 |
+| 13 | &#124; | 第二个不支持的竖线字符 |
+| 20 | `/*` | 块注释未闭合（EOF） |
 
 出错行集合：**3、4、7、8、13、20**。第 13 行有两个错误，所以错误总数为 7、错误行数为 6。
 
 ## 完整 Token 彩色输出
 
-\`\`\`bash
+```bash
 ./build/lexer tests/instructor_lexer_test.txt --all-tokens
-\`\`\`
+```
 
 七张原始截图已按运行阶段归档，点击文件即可查看原图：
 
@@ -55,17 +55,17 @@ make clean && make
 | 全部 Token，中段（一） | [03 · all-tokens-middle-a](screenshots/03-all-tokens-middle-a.png) |
 | 全部 Token，中段（二） | [04 · all-tokens-middle-b](screenshots/04-all-tokens-middle-b.png) |
 | 全部 Token，结束及统计 | [05 · all-tokens-end](screenshots/05-all-tokens-end.png) |
-| \`lex.txt\`，开头部分 | [06 · lex-output-first](screenshots/06-lex-output-first.png) |
-| \`lex.txt\`，末尾部分 | [07 · lex-output-last](screenshots/07-lex-output-last.png) |
+| `lex.txt`，开头部分 | [06 · lex-output-first](screenshots/06-lex-output-first.png) |
+| `lex.txt`，末尾部分 | [07 · lex-output-last](screenshots/07-lex-output-last.png) |
 
 [![完整 Token 识别示例](screenshots/02-all-tokens-start.png)](screenshots/02-all-tokens-start.png)
 
 ## 合法 Token 输出文件
 
-\`\`\`bash
+```bash
 wc -l docs/lex.txt
 # 90 docs/lex.txt
-\`\`\`
+```
 
 [**查看完整合法 Token 快照：instructor-lex.txt**](instructor-lex.txt)
 
@@ -73,9 +73,9 @@ wc -l docs/lex.txt
 
 ## 结果分析
 
-- **数字与非法词素**：\`2a\`、\`0100\` 被判为错误；\`10.23\` 则输出 \`10\`、错误 \`.\`、\`23\`，符合当前不支持浮点数的词法设计。
-- **运算符**：\`>=\`、\`==\`、\`!=\` 被识别为双字符运算符；\`||\` 作为两个不支持的 \`|\` 字符报错。
-- **注释**：单行注释与闭合的多行注释被跳过；未闭合的 \`/*\` 在 EOF 报告起始行号为 20。
+- **数字与非法词素**：`2a`、`0100` 被判为错误；`10.23` 则输出 `10`、错误 `.`、`23`，符合当前不支持浮点数的词法设计。
+- **运算符**：`>=`、`==`、`!=` 被识别为双字符运算符；`||` 作为两个不支持的 `|` 字符报错。
+- **注释**：单行注释与闭合的多行注释被跳过；未闭合的 `/*` 在 EOF 报告起始行号为 20。
 - **统计与文件**：合法 Token 及关键字数、错误数、错误行数与输出文件行数互相吻合。
 
 ## 验收结论

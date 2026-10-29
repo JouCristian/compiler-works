@@ -1,6 +1,6 @@
 # 课程实验文档 · Compiler Works
 
-本目录集中展示编译器课程实验的设计依据、自动机模型、推导过程与实测结果。源代码位于仓库 \`src/\`，测试输入位于 \`tests/\`。
+本目录集中展示编译器课程实验的设计依据、自动机模型、推导过程与实测结果。源代码位于仓库 `src/`，测试输入位于 `tests/`。
 
 ## 实验目录
 
@@ -30,9 +30,9 @@
 
 ## 文件组织
 
-- \`lexical-analysis/figures/\`：10 张已归档的自动机设计图。
-- \`lexical-analysis/theory/\`：四份可在线阅读的数学推导和算法说明。
-- \`lexical-analysis/results/\`：正式验收报告、输出快照、实际终端截图。
-- \`docs/lex.txt\`：程序运行时生成的纯文本文件，由 Git 忽略；可复现的正式输出快照已另行归档。
+- `lexical-analysis/figures/`：10 张已归档的自动机设计图。
+- `lexical-analysis/theory/`：四份可在线阅读的数学推导和算法说明。
+- `lexical-analysis/results/`：正式验收报告、输出快照、实际终端截图。
+- `docs/lex.txt`：程序运行时生成的纯文本文件，由 Git 忽略；可复现的正式输出快照已另行归档。
 
 [返回项目主页](../README.md)

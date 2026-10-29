@@ -1,46 +1,73 @@
 # Compiler Works
 
-西南科技大学《编译原理》课程实验工程。项目使用 C11，实现一个简化类 C 语言的编译处理流程。当前完成了实验一词法分析器的主要功能，实验二语法分析、实验三语义分析及中间代码生成将在同一仓库中逐步开发。
+西南科技大学《编译原理》课程实验工程，以 **C11** 实现简化类 C 语言的词法分析器，并在同一工程中逐步扩展语法分析、语义处理和中间代码生成。当前**实验一（词法分析）已完成指导样例验收**。
+
+## 当前进度
+
+| 阶段 | 状态 | 说明 |
+| --- | --- | --- |
+| 实验一：词法分析 | **已完成指定样例验收** | Lexer、Token 输出、错误统计、理论图与文档 |
+| 实验二：语法分析 | 尚未开始 | 将复用 Lexer，并实现语法分析器 |
+| 实验三：语义分析和代码生成 | 尚未开始 | 随实验二完善后开发 |
 
 ## 项目结构
 
-- `src/`：程序入口、词法扫描器源码。
-- `include/`：Lexer API、Token 类型、ANSI 颜色与公共宏。
-- `tests/`：词法测试输入，部分内容故意包含错误，未必符合语法规则。
-- `docs/`：课程实验设计、图纸、理论推导和测试说明。
-- `build/`：本地构建产物，不加入版本控制。
-
-## 编译与运行
-
-在仓库根目录运行：
-
-```bash
-make
-make run
-make run TESTS=tests/operatorsTest.c
-
-# 默认仅显示词法错误及统计
-./build/lexer tests/unknownTest.c
-
-# 显示所有 Token（包括错误）
-./build/lexer tests/unknownTest.c --all-tokens
+```text
+compiler_works/
+├── src/                            # main.c、lexer.c
+├── include/                        # Token/API、ANSI 配色、公共宏
+├── tests/                          # 指定样例和专项回归用例
+├── docs/
+│   ├── lexical-analysis/
+│   │   ├── figures/                # 10 张词法自动机图
+│   │   ├── theory/                 # 正则规则、DFA 构造与最小化等
+│   │   └── results/                # 正式验收记录及 Token 输出快照
+│   └── lex.txt                     # 运行时输出，Git 忽略
+├── build/                           # 编译产物，Git 忽略
+└── Makefile
 ```
 
-合法 Token 输出在 `docs/lex.txt`（含表头，纯文本，无 ANSI 颜色）。目前代码使用相对路径 `fopen("docs/lex.txt", "w")`，所以请在仓库根目录运行，并保留 `docs/` 目录。
+## 编译与使用
 
-## 实验文档
+要求 Linux、GCC（C11）和 make。**请在仓库根目录运行**，以正确生成 `docs/lex.txt`。
 
-- [全部课程文档](docs/README.md)
-- [实验一：词法分析设计与实现](docs/lexical-analysis/README.md)
-- [词法规则及 Token 分类](docs/lexical-analysis/theory/regex-and-tokens.md)
+```bash
+make clean && make
+
+# 指定样例：仅显示词法错误及统计
+./build/lexer tests/instructor_lexer_test.txt
+
+# 指定样例：显示全部彩色 Token
+./build/lexer tests/instructor_lexer_test.txt --all-tokens
+
+# 查看输出文件
+cat docs/lex.txt
+wc -l docs/lex.txt
+```
+
+可执行 `make run` 使用默认 `tests/test.c`，或 `make run TESTS=tests/numbersTest.c` 指定专项测试。
+
+## 指定样例验收结果（2026-10-29）
+
+| 合法 Token | 关键字 | 词法错误 | 错误行 | lex.txt 行数（含表头） |
+| ---: | ---: | ---: | ---: | ---: |
+| **89** | **15** | **7** | **6** | **90** |
+
+错误分别位于第 3、4、7、8、13（2 次）、20 行。注释均按规则跳过；第 20 行未闭合块注释被报告为错误。
+
+- [测试输入（原样保留）](tests/instructor_lexer_test.txt)
+- [完整验收记录](docs/lexical-analysis/results/README.md)
+- [合法 Token 输出快照](docs/lexical-analysis/results/instructor-lex.txt)
+
+## 文档与设计
+
+- [文档目录](docs/README.md)
+- [实验一设计与实现说明](docs/lexical-analysis/README.md)
+- [词法规则与 Token 分类](docs/lexical-analysis/theory/regex-and-tokens.md)
 - [NFA 合并与 DFA 确定化](docs/lexical-analysis/theory/nfa-to-dfa.md)
 - [DFA 最小化](docs/lexical-analysis/theory/dfa-minimization.md)
-- [最长匹配与错误恢复](docs/lexical-analysis/theory/maximal-munch.md)
+- [最长匹配及错误恢复](docs/lexical-analysis/theory/maximal-munch.md)
 
-## 理论模型与代码实现的关系
+## 设计边界
 
-理论图示描述正则规则对应的 NFA、DFA 及最小化。当前 `src/lexer.c` 是基于字符分类、`fgetc()` 向前看和 `ungetc()` 回退的手写扫描器，**不在运行时执行 NFA 子集构造或加载 DFA 状态表**。
-
-`TokenType` 包含 KEYWORD、IDENTIFIER、NUMBER、OPERATOR、DELIMITER、WRONG；注释识别后跳过，不作为普通合法 Token 输出。
-
-实验一理论资料和主要功能已整理，仍需用老师另行提供的指定输入做最终验收。
+代码采用 `fgetc()`、`ungetc()`、字符分支以及辅助函数执行扫描；NFA、DFA、最小化文档用于理论推导，**并非运行时自动机表的实现**。 `TOKEN_WRONG` 的数字串聚合等行为是代码的错误恢复约定；注释识别后跳过，不计入合法 Token。课程实验的程序正确性只在已列测试与规则范围内确认，不表示具有完整 C 语言词法能力。

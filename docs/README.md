@@ -1,18 +1,26 @@
-# Compiler Works — 实验文档
+# 课程实验文档
 
-此目录存放课程实验的**设计说明、正则表达式、自动机图、理论推导、测试记录**；程序源码位于仓库的 `src/`，测试输入位于 `tests/`。
+本目录集中保存 **编译器设计说明、自动机图、理论推导与实测证据**。源代码位于仓库 `src/`，测试输入位于 `tests/`，构建产物位于 `build/`。
 
-| 阶段 | 内容 | 进度 |
+## 文档导航
+
+| 实验阶段 | 内容 | 状态 |
 | --- | --- | --- |
-| [实验一：词法分析](lexical-analysis/README.md) | 七类词法规则、NFA、合并 NFA、确定化 DFA、最小化 DFA、最长匹配 | 程序主体和理论文档已整理，待指定样例最终验收 |
-| 实验二：语法分析 | 文法改造、FIRST/FOLLOW、递归下降 | 待开发 |
-| 实验三：语义分析与中间代码生成 | 分析、调试翻译程序与抽象机 | 待开发 |
+| [实验一：词法分析](lexical-analysis/README.md) | 正则、七类 NFA、合并 NFA、确定化 DFA、最小化 DFA、Lexer 与测试 | **指定测试通过** |
+| 实验二：语法分析 | 文法改造、FIRST/FOLLOW、递归下降分析器 | 待开发 |
+| 实验三：语义处理和中间代码 | 语义分析、翻译与运行结果 | 待开发 |
 
-## 文件管理
+## 实验一成果
 
-- 正式说明以 Markdown（`.md`）保存，方便 GitHub 在线浏览。
-- 图纸放在相应实验的 `figures/`，本实验已有 10 张 PNG；如有可编辑原图，可一并保存。
-- 运行时的 `docs/lex.txt` 由程序生成，由 `.gitignore` 排除，不作为理论文档提交。
-- 稳定的测试样例与对应结果可以在各实验 README 中引用；源代码测试文件放在 `tests/`。
+- [理论文件（四份）](lexical-analysis/README.md#理论设计资料)
+- [自动机图（十张）](lexical-analysis/README.md#十张自动机图)
+- [指定源程序测试报告](lexical-analysis/results/README.md)
+- [合法 Token 输出快照](lexical-analysis/results/instructor-lex.txt)
+
+## 版本控制约定
+
+- `docs/lex.txt` 为当前运行产生的文件，不上传到 Git；结果快照统一保存在 `lexical-analysis/results/`。
+- 理论图纸使用 PNG，必要时可另外保存可编辑的矢量源文件。
+- 特定测试仍保留在 `tests/`，避免只留一种用例导致后续修改缺乏回归验证。
 
 [返回仓库主页](../README.md)

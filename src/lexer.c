@@ -89,7 +89,7 @@ static void emit_token(const Token *token,
 		print_token(out,overflow,token);
 	} else {
 		if(mode == OUTPUT_ALL_TOKENS) {
-			print_token(stderr,overflow,token);
+			print_token(stdout,overflow,token);
 		}
 		write_token(out,token);
 	}

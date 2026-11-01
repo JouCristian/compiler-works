@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "lexer.h"
 #include "ansi.h"
+#include "parser.h"
 
 static void print_usage(const char *prog) {
 	fprintf(stderr,
@@ -49,7 +51,20 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	lexer_scan_file(fp,lex_out,mode);
+	TokenBuffer buffer;
+	token_buffer_init(&buffer);
+
+	bool scanned = lexer_scan_file(fp,lex_out,mode,&buffer);
+
+	if(!scanned) {
+		fprintf(stderr,
+			ANSI_FMT("lexer:Memory out of %d tokens\n", ANSI_FG_RED),
+			TB_MAX_LEN);
+		goto finish;
+	}
+
+finish:
+	token_buffer_free(buffer);
 	
 	fclose(fp);
 

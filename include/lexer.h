@@ -2,8 +2,11 @@
 #define LEXER_H
 
 #include <stdio.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 #define MAX_TOKEN_LEN 128
+#define TB_MAX_LEN 32768
 
 typedef enum {
 	OUTPUT_ERRORS_ONLY,
@@ -33,6 +36,18 @@ typedef struct {
 	int last_error_line;
 } LexerState;
 
-void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode);
+typedef struct {
+	Token *token;
+	size_t count;
+	size_t capacity;
+} TokenBuffer;
+
+void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *token, LexerState *state);
+
+void token_buffer_init(TokenBuffer *buffer);
+
+bool token_buffer_push(TokenBuffer *buffer, const Token *token);
+
+void token_buffer_free(TokenBuffer *buffer);
 
 #endif

@@ -35,6 +35,37 @@ static const char *const typecolors[] = {
 	[TOKEN_WRONG]      = ANSI_FG_RED
 };
 
+void token_buffer_init(TokenBuffer *buffer) {
+	buffer->token = NULL;
+	buffer->count = 0;
+	buffer->capacity = 0;
+}
+
+bool token_buffer_push(TokenBuffer *buffer, const Token *token) {
+	if(buffer->count == buffer->capacity) {
+		size_t new_capacity;
+		if(buffer->capacity == 0) {
+			new_capacity = 2;
+		} else {
+			new_capacity = buffer->capacity * 2;
+			if(new_capacity > TB_MAX_LEN) return false;
+		}
+		Token *new_token = realloc(buffer->token,new_capacity * sizeof(Token));
+		if(new_token == NULL) return false;
+		buffer->token = new_token;
+		buffer->capacity = new_capacity;
+	}
+	buffer->token[buffer->count++] = *token;
+	return true;
+}
+
+void token_buffer_free(TokenBuffer *buffer) {
+	free(buffer->token);
+	buffer->token = NULL;
+	buffer->count = 0;
+	buffer->capacity = 0;
+}
+
 static void write_token(FILE *out, const Token *token) {
 	if(token->type == TOKEN_WRONG) {
 		return;
@@ -64,11 +95,12 @@ static void print_token(FILE *out,
 			token->line);
 }
 
-static void emit_token(const Token *token,
+static bool emit_token(const Token *token,
 	       	       const bool overflow,
 	       	       LexerState *lexerstate,
 		       FILE *lex_out,
-		       TerminalMode mode) {
+		       TerminalMode mode,
+		       TokenBuffer *buffer) {
 
 	if(token->type == TOKEN_WRONG) {
 		lexerstate->error_count++;
@@ -93,6 +125,7 @@ static void emit_token(const Token *token,
 		}
 		write_token(out,token);
 	}
+	return token_buffer_push(buffer,token) ? true : false;
 }
 
 static void emit_lexer_statistics(const LexerState *lexerstate) {
@@ -158,7 +191,7 @@ static bool skip_block_comment(FILE *fp, int *line) {
 	return false;
 }
 
-void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
+bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *buffer) {
 	fprintf(lex_out,"%-10s\t%-24s\t%s\n",
 		"type",
 		"character",
@@ -204,7 +237,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 					: TOKEN_IDENTIFIER;
 			}
 
-			emit_token(&token,overflow,&lexerstate,lex_out,mode);
+			return emit_token(&token,overflow,&lexerstate,lex_out,mode) ? true : false;
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -235,7 +268,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 				token.type = TOKEN_WRONG;
 			}
 
-			emit_token(&token,overflow,&lexerstate,lex_out,mode);
+			return emit_token(&token,overflow,&lexerstate,lex_out,mode) ? true : false;
 		}
 		else if(is_delimiter(ch)) {
 			Token token = {0};
@@ -245,7 +278,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 			token.lexeme[len++] = (char)ch;
 			token.lexeme[len] = '\0';
 
-			emit_token(&token,false,&lexerstate,lex_out,mode);
+			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 		}
 		else if(is_operator_start(ch)) {
 			Token token = {0};
@@ -270,7 +303,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 				}
 			}
 
-			emit_token(&token,false,&lexerstate,lex_out,mode);
+			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 		}
 		else if(ch == '/') {
 			int next = fgetc(fp);
@@ -285,7 +318,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 					token.lexeme[0] = '/';
 					token.lexeme[1] = '*';
 
-					emit_token(&token,false,&lexerstate,lex_out,mode);
+					return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 					fprintf(stderr,
 						"Unterminated comment at line %d\n",
 						start_line);
@@ -300,7 +333,7 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 					ungetc(next,fp);
 				}
 
-				emit_token(&token,false,&lexerstate,lex_out,mode);
+				return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 			}
 		}
 		else {
@@ -310,8 +343,8 @@ void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode) {
 			token.lexeme[0] = (char)ch;
 			token.lexeme[1] = '\0';
 
-			emit_token(&token,false,&lexerstate,lex_out,mode);
+			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 		}
 	}
-	emit_lexer_statistics(&lexerstate);
+	return emit_lexer_statistics(&lexerstate) ? true : false;
 }

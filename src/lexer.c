@@ -125,7 +125,10 @@ static bool emit_token(const Token *token,
 		}
 		write_token(out,token);
 	}
-	return token_buffer_push(buffer,token) ? true : false;
+	if(token->type != TOKEN_WRONG) {
+		return token_buffer_push(buffer,token);
+	}
+	return true;
 }
 
 static void emit_lexer_statistics(const LexerState *lexerstate) {
@@ -237,7 +240,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					: TOKEN_IDENTIFIER;
 			}
 
-			return emit_token(&token,overflow,&lexerstate,lex_out,mode) ? true : false;
+			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 		}		
 		else if(isdigit((unsigned char)ch)) {
 			Token token = {0};
@@ -268,7 +271,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 				token.type = TOKEN_WRONG;
 			}
 
-			return emit_token(&token,overflow,&lexerstate,lex_out,mode) ? true : false;
+			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 		}
 		else if(is_delimiter(ch)) {
 			Token token = {0};
@@ -278,7 +281,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 			token.lexeme[len++] = (char)ch;
 			token.lexeme[len] = '\0';
 
-			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
+			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 		}
 		else if(is_operator_start(ch)) {
 			Token token = {0};
@@ -302,8 +305,8 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					}
 				}
 			}
-
-			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
+			
+			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 		}
 		else if(ch == '/') {
 			int next = fgetc(fp);
@@ -318,10 +321,10 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					token.lexeme[0] = '/';
 					token.lexeme[1] = '*';
 
-					return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
 					fprintf(stderr,
 						"Unterminated comment at line %d\n",
 						start_line);
+					if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 				}
 			} else {
 				Token token = {0};
@@ -333,7 +336,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					ungetc(next,fp);
 				}
 
-				return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
+				if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
 			}
 		}
 		else {
@@ -343,8 +346,9 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 			token.lexeme[0] = (char)ch;
 			token.lexeme[1] = '\0';
 
-			return emit_token(&token,false,&lexerstate,lex_out,mode) ? true : false;
+			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;	
 		}
 	}
-	return emit_lexer_statistics(&lexerstate) ? true : false;
+	emit_lexer_statistics(&lexerstate);
+	return true;
 }

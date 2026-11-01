@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 	}
 
 finish:
-	token_buffer_free(buffer);
+	token_buffer_free(&buffer);
 	
 	fclose(fp);
 

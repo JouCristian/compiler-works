@@ -54,12 +54,23 @@ int main(int argc, char *argv[]) {
 	TokenBuffer buffer;
 	token_buffer_init(&buffer);
 
-	bool scanned = lexer_scan_file(fp,lex_out,mode,&buffer);
+	LexerState state = {0};
+	int exit_code = EXIT_SUCCESS;
+
+	bool scanned = lexer_scan_file(fp,lex_out,mode,&buffer,&state);
 
 	if(!scanned) {
 		fprintf(stderr,
-			ANSI_FMT("lexer:Memory out of %d tokens\n", ANSI_FG_RED),
+			ANSI_FMT("Memory Out: max memory size %d tokens\n", ANSI_FG_RED),
 			TB_MAX_LEN);
+		exit_code = EXIT_FAILURE;
+		goto finish;
+	}
+	if(state.error_count > 0) {
+		fprintf(stderr,
+			ANSI_FMT("Parser Skipped: %d lexical errors\n",ANSI_FG_RED),
+			state.error_count);
+		exit_code = EXIT_FAILURE;
 		goto finish;
 	}
 
@@ -73,5 +84,5 @@ finish:
 		return EXIT_FAILURE;
 	}
 
-	return 0;
+	return exit_code;
 }

@@ -43,7 +43,7 @@ typedef struct {
 	size_t capacity;
 } TokenBuffer;
 
-void lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *token);
+bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *token, LexerState *state);
 
 void token_buffer_init(TokenBuffer *buffer);
 

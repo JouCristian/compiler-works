@@ -194,7 +194,7 @@ static bool skip_block_comment(FILE *fp, int *line) {
 	return false;
 }
 
-bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *buffer) {
+bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *buffer, LexerState *state) {
 	fprintf(lex_out,"%-10s\t%-24s\t%s\n",
 		"type",
 		"character",
@@ -350,5 +350,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 		}
 	}
 	emit_lexer_statistics(&lexerstate);
+
+	*state = lexerstate;
 	return true;
 }

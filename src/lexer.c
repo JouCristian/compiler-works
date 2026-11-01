@@ -281,7 +281,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 			token.lexeme[len++] = (char)ch;
 			token.lexeme[len] = '\0';
 
-			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
+			if(!emit_token(&token,false,&lexerstate,lex_out,mode,buffer)) return false;
 		}
 		else if(is_operator_start(ch)) {
 			Token token = {0};
@@ -306,7 +306,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 				}
 			}
 			
-			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
+			if(!emit_token(&token,false,&lexerstate,lex_out,mode,buffer)) return false;
 		}
 		else if(ch == '/') {
 			int next = fgetc(fp);
@@ -322,9 +322,9 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					token.lexeme[1] = '*';
 
 					fprintf(stderr,
-						"Unterminated comment at line %d\n",
+						ANSI_FMT("Unterminated comment at line %d\n",ANSI_FG_YELLOW),
 						start_line);
-					if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
+					if(!emit_token(&token,false,&lexerstate,lex_out,mode,buffer)) return false;
 				}
 			} else {
 				Token token = {0};
@@ -336,7 +336,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 					ungetc(next,fp);
 				}
 
-				if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;
+				if(!emit_token(&token,false,&lexerstate,lex_out,mode,buffer)) return false;
 			}
 		}
 		else {
@@ -346,7 +346,7 @@ bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *bu
 			token.lexeme[0] = (char)ch;
 			token.lexeme[1] = '\0';
 
-			if(!emit_token(&token,overflow,&lexerstate,lex_out,mode,buffer)) return false;	
+			if(!emit_token(&token,false,&lexerstate,lex_out,mode,buffer)) return false;	
 		}
 	}
 	emit_lexer_statistics(&lexerstate);

@@ -78,11 +78,7 @@ finish:
 	token_buffer_free(&buffer);
 	
 	fclose(fp);
-
-	if(fclose(lex_out) == EOF) {
-		perror("fclose docs/lex.txt");
-		return EXIT_FAILURE;
-	}
+	fclose(lex_out);
 
 	return exit_code;
 }

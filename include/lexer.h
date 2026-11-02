@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 #define MAX_TOKEN_LEN 128
 #define TB_MAX_LEN 32768
@@ -38,12 +37,12 @@ typedef struct {
 } LexerState;
 
 typedef struct {
-	Token *token;
+	Token *tokens;
 	size_t count;
 	size_t capacity;
 } TokenBuffer;
 
-bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *token, LexerState *state);
+bool lexer_scan_file(FILE *fp, FILE *lex_out, TerminalMode mode, TokenBuffer *tokens, LexerState *state);
 
 void token_buffer_init(TokenBuffer *buffer);
 

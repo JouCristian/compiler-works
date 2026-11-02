@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 
 static const char *const keywords[] = {
 	"if", "else", "for", "while",
@@ -36,7 +37,7 @@ static const char *const typecolors[] = {
 };
 
 void token_buffer_init(TokenBuffer *buffer) {
-	buffer->token = NULL;
+	buffer->tokens = NULL;
 	buffer->count = 0;
 	buffer->capacity = 0;
 }
@@ -50,18 +51,18 @@ bool token_buffer_push(TokenBuffer *buffer, const Token *token) {
 			new_capacity = buffer->capacity * 2;
 			if(new_capacity > TB_MAX_LEN) return false;
 		}
-		Token *new_token = realloc(buffer->token,new_capacity * sizeof(Token));
+		Token *new_token = realloc(buffer->tokens,new_capacity * sizeof(Token));
 		if(new_token == NULL) return false;
-		buffer->token = new_token;
+		buffer->tokens = new_token;
 		buffer->capacity = new_capacity;
 	}
-	buffer->token[buffer->count++] = *token;
+	buffer->tokens[buffer->count++] = *token;
 	return true;
 }
 
 void token_buffer_free(TokenBuffer *buffer) {
-	free(buffer->token);
-	buffer->token = NULL;
+	free(buffer->tokens);
+	buffer->tokens = NULL;
 	buffer->count = 0;
 	buffer->capacity = 0;
 }
@@ -132,7 +133,7 @@ static bool emit_token(const Token *token,
 }
 
 static void emit_lexer_statistics(const LexerState *lexerstate) {
-	printf("\n===== Lexer Statistics =====\n");
+	printf(ANSI_FMT("\n===== Lexer Statistics =====\n",ANSI_FG_MAGENTA));
 	printf("Valid Tokens : %u\n", lexerstate->token_count);
 	printf("Keywords     : %u\n", lexerstate->keyword_count);
 	printf("Errors       : %u\n", lexerstate->error_count);

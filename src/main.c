@@ -68,11 +68,15 @@ int main(int argc, char *argv[]) {
 	}
 	if(state.error_count > 0) {
 		fprintf(stderr,
-			ANSI_FMT("Parser Skipped: %d lexical errors\n",ANSI_FG_RED),
+			ANSI_FMT("Parser Skipped: %u lexical errors\n",ANSI_FG_RED),
 			state.error_count);
 		exit_code = EXIT_FAILURE;
 		goto finish;
 	}
+
+	Parser parser;
+	parser_init(&parser,buffer.tokens,buffer.count);
+	printf(ANSI_FMT("Parser received %zu tokens!\n",ANSI_FG_GREEN),parser.count);
 
 finish:
 	token_buffer_free(&buffer);

@@ -65,7 +65,7 @@ compiler_works/
 │   │   └── lex.txt              # 运行时生成，不纳入版本控制
 │   └── grammar-analysis/
 │       ├── README.md            # 实验二总览
-│       └── theory/              # 文法原稿与 FIRST/FOLLOW 草稿
+│       └── theory/              # 文法定义、FIRST/FOLLOW 与理论索引
 ├── Makefile
 └── .gitignore
 ```
@@ -75,8 +75,9 @@ compiler_works/
 | 资料 | 内容 |
 | --- | --- |
 | [实验一完整说明](docs/lexical-analysis/README.md) | 程序架构、功能、10 张图与验收 |
-| [实验二语法分析](docs/grammar-analysis/README.md) | 文法改造、Lexer → Parser 接口与进度 |
-| [改造后的文法原稿](docs/grammar-analysis/theory/grammar-list) | 自定义编号与排版的 22 组文法 |
+| [实验二语法分析](docs/grammar-analysis/README.md) | 系统结构、开发进度及递归下降设计 |
+| [改造后的语法文法](docs/grammar-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
+| [FIRST 与 FOLLOW 集](docs/grammar-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
 | [正则表达式与 Token](docs/lexical-analysis/theory/regex-and-tokens.md) | 词法规则与分类优先级 |
 | [NFA → DFA](docs/lexical-analysis/theory/nfa-to-dfa.md) | 合并 NFA、子集构造、38 状态 DFA |
 | [DFA 最小化](docs/lexical-analysis/theory/dfa-minimization.md) | 划分迭代及 30 状态结果 |

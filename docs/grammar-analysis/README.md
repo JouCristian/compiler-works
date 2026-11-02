@@ -1,133 +1,63 @@
-# 实验二 · 语法分析器设计与实现
+# 实验二 · 递归下降语法分析
 
-**当前进度：已完成文法改造、Lexer → TokenBuffer → Parser 数据传递与词法错误阻断；递归下降主体和语法验收待实现。**
+本实验针对课程指导书定义的简化类 C 语言，基于 C11 实现语法分析模块。系统以前一阶段的词法分析结果为输入，按照改造后的文法执行递归下降分析。
 
-本实验面向指导书规定的简化类 C 语言，使用递归下降方法检查 Token 序列的语法结构。
+## 功能与实现状态
 
-## 当前实现
-
-| 模块 | 进度 |
+| 功能模块 | 实现状态 |
 | --- | --- |
-| Lexer 与 TokenBuffer | 已完成；缓冲区仅保存合法 Token |
-| 词法错误阻断 | 已完成；存在词法错误时跳过 Parser |
-| Parser 基础接口 | 已实现初始化、查看/前进 Token、`match()`、`expect()` |
-| 文法改造 | 已消除直接左递归、提取左公因子 |
-| FIRST / FOLLOW | 正在整理 |
-| 完整递归下降与语法错误统计 | 待开发 |
+| TokenBuffer 数据传递 | 已完成 |
+| 词法错误检查与语法分析阶段控制 | 已完成 |
+| Parser 状态初始化与 Token 匹配接口 | 已完成 |
+| 文法改造、FIRST / FOLLOW 集与 LL(1) 检查 | 理论设计完成 |
+| 递归下降语法识别 | 待实现 |
+| 语法错误输出、记录与测试验收 | 待实现 |
 
-### 程序结构
+### 模块结构
 
 ```text
-src/main.c
-  ├── lexer_scan_file()              [src/lexer.c]
-  │     └── emit_token()
-  │           ├── 终端输出与统计
-  │           ├── 写入 lexical-analysis/lex.txt
-  │           └── 合法 Token → TokenBuffer
-  ├── 检查 LexerState.error_count
-  │     ├── > 0：跳过 Parser
-  │     └── = 0：parser_init()       [src/parser.c]
+main.c
+  ├── lexer_scan_file()                [lexer.c]
+  │     ├── 词法识别、终端输出和文件记录
+  │     └── 合法 Token → TokenBuffer
+  ├── LexerState.error_count 检查
+  │     ├── 存在词法错误 → 不进入语法分析
+  │     └── 词法检查通过 → parser_init()  [parser.c]
   └── token_buffer_free()
 ```
 
-目前 `parser_init()` 仅接收 Token 数组、初始化分析状态，尚未判断整份源程序的语法合法性。
+当前 Parser 已具备 `parser_init()`、`parser_peek()`、`parser_advance()`、`parser_match()` 和 `parser_expect()` 等基础接口；完整的产生式分析函数尚未实现。
 
-## 改造后的文法
+## 文法设计
 
-以下直接移植 [grammar-list 原稿](theory/grammar-list)，**保留原有编号、排列、符号和缩进**，不重新改写文法：
+依据指导书的 18 组原始语法规则完成左递归消除和左公因子提取，形成包含 **22 组非终结符产生式、44 个候选式**的改造文法。
 
-```text
-(1) <program> -> 
-	{<declaration_list><statement_list>}
-(2) <declaration_list> -> 
-	  <declaration_stat><declaration_list> 
-	| ε
-(3) <declaration_stat> -> 
-	int ID<variable_list>;
-(4) <variable_list> -> 
-	  ,ID<variable_list> 
-	| ε
-(5) <statement_list> -> 
-	  <statement><statement_list> 
-	| ε
-(6) <statement> ->
-	  <if_stat>
-	| <while_stat>
-	| <for_stat>
-	| <read_stat>
-	| <write_stat>
-	| <compound_stat>
-	| <assignment_stat>
-	| ;
-(7) <if_stat> ->
-	  if(<bool_expression>)<statement><else_part>
-(8) <else_part> ->
-	  else <statement>
-	| ε
-(9) <while_stat> ->
-	  while(<bool_expression>)<statement>
-(10) <for_stat> ->
-	  for(<assignment_expression>;<bool_expression>;<assignment_expression>)<statement>
-(11) <write_stat> ->
-	  write <arithmetic_expression>;
-(12) <read_stat> ->
-	  read ID;
-(13) <compound_stat> ->
-	  {<statement_list>}
-(14) <assignment_expression> ->
-	  ID=<arithmetic_expression>
-(15) <assignment_stat> ->
-	  <assignment_expression>;
-(16) <bool_expression> ->
-	  <arithmetic_expression><relop><arithmetic_expression>
-(17) <relop> ->
-	  >
-	| <
-	| >=
-	| <=
-	| ==
-	| !=
-(18) <arithmetic_expression> ->
-	  <term><arithmetic_tail>
-(19) <arithmetic_tail> ->
-	  +<term><arithmetic_tail>
-	| -<term><arithmetic_tail>
-	| ε
-(20) <term> ->
-	  <factor><term_tail>
-(21) <term_tail> ->
-	  *<factor><term_tail>
-	| /<factor><term_tail>
-	| ε
-(22) <factor> ->
-	  (<arithmetic_expression>)
-	| ID
-	| NUM
-```
+语句文法涵盖声明、赋值、输入输出、条件分支、循环及复合语句；表达式文法涵盖整数、标识符、四则运算及关系比较。悬挂 `else` 保留特殊解析约定，其冲突原因在理论文档中单独说明。
 
-文法改造包括：消除声明序列、语句序列、算术表达式及项的左递归；提取 `if` 语句和布尔表达式的左公因子。**注意：** `else_part` 仍存在悬挂 `else` 的 LL(1) 冲突；后续实现采用“`else` 匹配最近的未匹配 `if`”原则，而不是宣称整个文法满足严格 LL(1)。
-
-## 理论资料
-
-| 文件 | 内容 |
+| 理论文档 | 主要内容 |
 | --- | --- |
-| [grammar-list](theory/grammar-list) | 改造后的文法原稿 |
-| [FISRT-FOLLOW-list](theory/FISRT-FOLLOW-list) | FIRST / FOLLOW 计算草稿（尚未完成） |
+| [改造后的语法文法](theory/grammar-specification.md) | 22 组完整产生式及文法改造 |
+| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 44 个候选式的 FIRST 集、全部 FOLLOW 集及 LL(1) 检查 |
+| [理论资料索引](theory/README.md) | 语法设计文档导航 |
 
-## 构建与阶段验证
+## 编译与运行
 
-从仓库根目录执行：
+在仓库根目录执行：
 
 ```bash
 make clean && make
 
-# 无词法错误：测试 TokenBuffer → Parser 初始化
+# 词法正确的测试输入：验证 Parser 初始化与 Token 传递
 ./build/lexer tests/parser/valid.c
 
-# 有词法错误：验证跳过 Parser
+# 包含词法错误的指定输入：验证错误阻断
 ./build/lexer tests/lexer/instructor_lexer_test.txt
 ```
 
-当前测试只验证词法分析及接口，不代表递归下降语法分析已通过。后续补充语法错误测试、统计结果及实验截图。
+词法分析结果输出至 `docs/lexical-analysis/lex.txt`。上述命令仅验证已实现的分析流程；**当前版本尚不提供完整的源程序语法判定**。
+
+## 后续开发
+
+递归下降产生式函数、语法错误定位与文件记录、指定源程序的语法错误统计将在后续开发阶段实现。
 
 [返回文档首页](../README.md) · [返回项目主页](../../README.md)

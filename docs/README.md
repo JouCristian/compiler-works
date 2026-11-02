@@ -33,8 +33,8 @@
 | 分类 | 内容 |
 | --- | --- |
 | [语法分析总览](grammar-analysis/README.md) | 文法改造、接口与当前进度 |
-| [改造后的文法](grammar-analysis/theory/grammar-list) | 保留原稿编号与排版 |
-| [FIRST / FOLLOW 草稿](grammar-analysis/theory/FISRT-FOLLOW-list) | 正在整理，尚未完成 |
+| [改造后的语法文法](grammar-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
+| [FIRST 与 FOLLOW 集](grammar-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
 
 ## 文件组织
 
@@ -42,6 +42,6 @@
 - `lexical-analysis/theory/`：四份可在线阅读的数学推导和算法说明。
 - `lexical-analysis/results/`：正式验收报告、输出快照、实际终端截图。
 - `lexical-analysis/lex.txt`：运行时生成的合法 Token 文件，由 Git 忽略；正式输出快照已归档。
-- `grammar-analysis/theory/`：改造后的文法原稿和 FIRST / FOLLOW 草稿。
+- `grammar-analysis/theory/`：文法定义、FIRST / FOLLOW 集及理论说明。
 
 [返回项目主页](../README.md)

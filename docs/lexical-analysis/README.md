@@ -25,7 +25,8 @@ src/main.c
         └── emit_token()
               ├── LexerState 统计
               ├── print_token()          → 终端（ANSI 彩色）
-              └── write_token()          → docs/lex.txt（合法 Token）
+              ├── write_token()          → docs/lexical-analysis/lex.txt
+              └── token_buffer_push()    → TokenBuffer（合法 Token）
 ```
 
 ## 编译与运行
@@ -33,17 +34,17 @@ src/main.c
 ```bash
 make clean && make
 
-./build/lexer tests/instructor_lexer_test.txt
-./build/lexer tests/instructor_lexer_test.txt --all-tokens
+./build/lexer tests/lexer/instructor_lexer_test.txt
+./build/lexer tests/lexer/instructor_lexer_test.txt --all-tokens
 
-wc -l docs/lex.txt
+wc -l docs/lexical-analysis/lex.txt
 ```
 
-默认模式显示错误和统计；`--all-tokens` 显示完整彩色 Token；`docs/lex.txt` 保存所有合法 Token，首行为表头。
+默认模式显示错误和统计；`--all-tokens` 显示完整彩色 Token；`docs/lexical-analysis/lex.txt` 保存所有合法 Token，首行为表头。
 
 ## 指定样例验收 · 2026-10-29
 
-实际运行 [instructor_lexer_test.txt](../../tests/instructor_lexer_test.txt)，得到：
+实际运行 [instructor_lexer_test.txt](../../tests/lexer/instructor_lexer_test.txt)，得到：
 
 | Valid Tokens | Keywords | Errors | Error Lines | lex.txt（含表头） |
 | ---: | ---: | ---: | ---: | ---: |
@@ -83,6 +84,6 @@ wc -l docs/lex.txt
 
 ## 测试集与课程实验边界
 
-`tests/` 保留了指定样例，以及数字、运算符、注释、未知字符等专项输入，便于回归测试。当前实现遵循课程规定的简化词法规则，不负责完整 C 语言词法处理或语法正确性判定。理论自动机描述合法词素的识别过程；手写 Lexer 另实现了 `TOKEN_WRONG` 错误聚合和统计逻辑。
+`tests/` 保留了指定样例，以及数字、运算符、注释、未知字符等专项输入，便于回归测试。当前实现遵循课程规定的简化词法规则，同时把合法 Token 保存到 TokenBuffer，供后续 Parser 使用；Lexer 本身不负责语法正确性判定。理论自动机描述合法词素的识别过程；手写 Lexer 另实现了 `TOKEN_WRONG` 错误聚合和统计逻辑。
 
-[返回文档首页](../README.md) · [返回项目主页](../../README.md)
+[实验二 · 语法分析](../grammar-analysis/README.md) · [返回文档首页](../README.md) · [返回项目主页](../../README.md)

@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	FILE *lex_out = fopen("docs/lex.txt","w");
+	FILE *lex_out = fopen("docs/lexical-analysis/lex.txt","w");
 	if(lex_out == NULL) {
 		perror("fopen docs/lex.txt");
 		fclose(fp);

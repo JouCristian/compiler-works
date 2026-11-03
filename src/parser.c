@@ -123,7 +123,7 @@ bool parser_arithmetic_expression(Parser *parser) {
 
 	while(parser_match(parser,TOKEN_OPERATOR,"+") ||
 		parser_match(parser,TOKEN_OPERATOR,"-")) {
-		if(!parser_factor(parser)) return false;
+		if(!parser_term(parser)) return false;
 	}
 
 	return true;

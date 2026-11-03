@@ -80,6 +80,18 @@ int main(int argc, char *argv[]) {
 	parser_init(&parser,buffer.tokens,buffer.count);
 	printf(ANSI_FMT("Parser received %zu tokens!\n",ANSI_FG_GREEN),parser.count);
 
+	if(!parser_program(&parser)) {
+		fprintf(stderr,
+			ANSI_FMT("Grammar error at line %d: %s\n",ANSI_FG_RED),
+			parser.error_line,
+			parser.error_message);
+		exit_code = EXIT_FAILURE;
+		goto finish;
+	}
+
+	printf(ANSI_FMT("Grammar analysis successfully!\n",ANSI_FG_GREEN));
+
+
 finish:
 	token_buffer_free(&buffer);
 	

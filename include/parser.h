@@ -36,4 +36,6 @@ bool parser_arithmetic_expression(Parser *parser);
 
 bool parser_bool_expression(Parser *parser);
 
+bool parser_program(Parser *parser);
+
 #endif

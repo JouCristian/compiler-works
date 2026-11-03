@@ -2,7 +2,7 @@
 
 **验收日期：2026-10-29**  
 **程序：C11 词法分析器（`src/main.c`、`src/lexer.c`）**  
-**测试输入：[instructor_lexer_test.txt](../../../tests/instructor_lexer_test.txt)**  
+**测试输入：[instructor_lexer_test.txt](../../../tests/lexer/instructor_lexer_test.txt)**  
 **运行环境：Ubuntu / GCC / GNU Make**
 
 本次使用指导样例完成词法识别、错误定位、注释处理、运算符最长匹配和纯文本 Token 输出验证，**测试结果与既定词法规则一致**。
@@ -15,13 +15,13 @@
 | 关键字 | **15** | 15 | 一致 |
 | 词法错误 | **7** | 7 | 一致 |
 | 错误行数 | **6** | 6 | 一致 |
-| `docs/lex.txt` 行数 | **90** | 90（含 1 行表头） | 一致 |
+| `docs/lexical-analysis/lex.txt` 行数 | **90** | 90（含 1 行表头） | 一致 |
 
 ### 默认模式 · 错误输出与统计
 
 ```bash
 make clean && make
-./build/lexer tests/instructor_lexer_test.txt
+./build/lexer tests/lexer/instructor_lexer_test.txt
 ```
 
 [![默认模式的错误报告与统计](screenshots/01-errors-and-statistics.png)](screenshots/01-errors-and-statistics.png)
@@ -43,7 +43,7 @@ make clean && make
 ## 完整 Token 彩色输出
 
 ```bash
-./build/lexer tests/instructor_lexer_test.txt --all-tokens
+./build/lexer tests/lexer/instructor_lexer_test.txt --all-tokens
 ```
 
 七张原始截图已按运行阶段归档，点击文件即可查看原图：
@@ -63,8 +63,8 @@ make clean && make
 ## 合法 Token 输出文件
 
 ```bash
-wc -l docs/lex.txt
-# 90 docs/lex.txt
+wc -l docs/lexical-analysis/lex.txt
+# 90 docs/lexical-analysis/lex.txt
 ```
 
 [**查看完整合法 Token 快照：instructor-lex.txt**](instructor-lex.txt)

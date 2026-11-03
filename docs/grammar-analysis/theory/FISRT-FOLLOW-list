@@ -1,4 +1,0 @@
-====================     FISRT     ====================
-非终结符号		产生式右部						FIRST
-<program>		{<declaration_list><statement_list>}			{"{"}
-<declaration_list>	{}

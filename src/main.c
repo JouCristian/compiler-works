@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 
 	FILE *lex_out = fopen("docs/lexical-analysis/lex.txt","w");
 	if(lex_out == NULL) {
-		perror("fopen docs/lex.txt");
+		perror("fopen docs/lexical-analysis/lex.txt");
 		fclose(fp);
 		return EXIT_FAILURE;
 	}
@@ -58,6 +58,8 @@ int main(int argc, char *argv[]) {
 	int exit_code = EXIT_SUCCESS;
 
 	bool scanned = lexer_scan_file(fp,lex_out,mode,&buffer,&state);
+	printf(ANSI_FMT("\nNotice: %u valid tokens has been writen into \"docs/lexical-analysis/lex.txt\",check it!\n",ANSI_FG_CYAN),
+			state.token_count);
 
 	if(!scanned) {
 		fprintf(stderr,

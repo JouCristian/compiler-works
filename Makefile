@@ -20,3 +20,4 @@ run: $(TARGET)
 
 clean:
 	rm -rf build
+	rm -f docs/grammar-analysis/results/grammar-errors.txt

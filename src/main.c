@@ -85,6 +85,15 @@ int main(int argc, char *argv[]) {
 			ANSI_FMT("Grammar error at line %d: %s\n",ANSI_FG_RED),
 			parser.error_line,
 			parser.error_message);
+
+		FILE *error_out = fopen("docs/grammar-analysis/results/grammar-errors.txt", "a");
+		if(error_out == NULL) {
+			perror("fopen docs/grammar-analysis/results/grammar-errors.txt");
+		} else {
+			fprintf(error_out, "%s:%d: %s\n",
+				argv[1], parser.error_line, parser.error_message);
+			fclose(error_out);
+		}
 		exit_code = EXIT_FAILURE;
 		goto finish;
 	}

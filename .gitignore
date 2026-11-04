@@ -1,3 +1,4 @@
 build/
 lex.txt
 *.o
+/docs/grammar-analysis/results/grammar-errors.txt

@@ -80,6 +80,8 @@ make clean
 
 ## 截图资料
 
-17 张原始终端截图按时间顺序整理，截图编号及对应的行号、测试阶段见[终端截图索引](screenshots-manifest.md)。截图原件作为配套归档包单独保存，不在此仓库中伪造图片链接。
+17 张终端截图已按原始 PNG 文件上传至 [screenshots/](screenshots/)，其中包含 16 次语法错误报告与 1 次最终通过。逐张文件名、源程序行号及测试阶段参见 [终端截图索引](screenshots-manifest.md)。
+
+[![最终语法分析成功的实测截图](screenshots/17-syntax-success.png)](screenshots/17-syntax-success.png)
 
 [返回实验二](../README.md) · [返回文档首页](../../README.md)

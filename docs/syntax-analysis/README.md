@@ -64,6 +64,7 @@ wc -l docs/syntax-analysis/results/syntax-errors.txt
 
 - [测试记录与错误明细](results/README.md)
 - [已归档的错误日志快照](results/syntax-errors-snapshot.txt)
-- [终端截图索引](results/screenshots-manifest.md)
+- [终端截图索引与图片预览](results/screenshots-manifest.md)
+- [最终通过的原始截图](results/screenshots/17-syntax-success.png)
 
 [返回文档首页](../README.md) · [返回仓库主页](../../README.md)

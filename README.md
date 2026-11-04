@@ -1,9 +1,9 @@
 # Compiler Works
 
-**基于 C11 的编译原理课程实验工程**。按阶段实现简化类 C 语言的词法分析、语法分析及后续处理。实验一已验收，实验二已完成文法改造及 Lexer → Parser 的基础数据传递。
+**基于 C11 的编译原理课程实验工程**。面向课程规定的简化类 C 语言，实现词法分析、递归下降语法分析及后续编译阶段。实验一已通过指定样例验收；实验二已完成语法识别与错误日志功能。
 
 **实验一 · 词法分析：已完成并通过指定样例验收（2026-10-29）**  
-**实验二 · 语法分析：文法与接口已准备，递归下降待实现**
+**实验二 · 语法分析：递归下降已实现，基础及错误记录测试通过**
 
 ## 实验一成果
 
@@ -26,6 +26,8 @@
 - **错误检测**：识别非法字符、非法数字词素、超长词素及未闭合块注释；分别统计错误数与错误行数。
 - **输出模式**：默认只显示错误和统计；指定 `--all-tokens` 可查看 ANSI 彩色 Token 流。
 - **文件输出**：合法 Token 的类别、词素和行号写入 `docs/lexical-analysis/lex.txt`，不含颜色控制码或非法词素。
+- **语法分析**：基于改造后的 22 组文法，识别声明、赋值、输入输出、控制语句和嵌套复合语句。
+- **错误记录**：每次运行遇到第一处语法错误后停止分析，并将错误位置和信息追加到日志文件。
 - **工程组织**：C11、GCC、Makefile、模块化头文件与独立测试集。
 
 ## 构建与运行
@@ -44,9 +46,16 @@ make clean && make
 # 输出文件核验
 cat docs/lexical-analysis/lex.txt
 wc -l docs/lexical-analysis/lex.txt
+
+# 实验二：合法与非法语法输入
+./build/lexer tests/parser/valid.c
+./build/lexer tests/parser/invalid.c
+
+# 查看跨运行追加的语法错误日志
+cat docs/grammar-analysis/results/grammar-errors.txt
 ```
 
-也可执行 `make run` 使用默认 `tests/lexer/test.c`，或执行 `make run TESTS=tests/lexer/operatorsTest.c` 运行专项用例。
+也可执行 `make run` 使用默认 `tests/lexer/test.c`，或指定 `TESTS=tests/lexer/operatorsTest.c` 运行专项用例。`make clean` 会同时删除构建产物与累计语法错误日志；普通 `make` 不会清空日志。
 
 ## 仓库结构
 
@@ -65,7 +74,8 @@ compiler_works/
 │   │   └── lex.txt              # 运行时生成，不纳入版本控制
 │   └── grammar-analysis/
 │       ├── README.md            # 实验二总览
-│       └── theory/              # 文法定义、FIRST/FOLLOW 与理论索引
+│       ├── theory/              # 文法定义、FIRST/FOLLOW 与理论索引
+│       └── results/             # 语法测试记录与运行时错误日志
 ├── Makefile
 └── .gitignore
 ```
@@ -78,6 +88,7 @@ compiler_works/
 | [实验二语法分析](docs/grammar-analysis/README.md) | 系统结构、开发进度及递归下降设计 |
 | [改造后的语法文法](docs/grammar-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
 | [FIRST 与 FOLLOW 集](docs/grammar-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
+| [实验二测试记录](docs/grammar-analysis/results/README.md) | 语法测试、日志追加与清理验证 |
 | [正则表达式与 Token](docs/lexical-analysis/theory/regex-and-tokens.md) | 词法规则与分类优先级 |
 | [NFA → DFA](docs/lexical-analysis/theory/nfa-to-dfa.md) | 合并 NFA、子集构造、38 状态 DFA |
 | [DFA 最小化](docs/lexical-analysis/theory/dfa-minimization.md) | 划分迭代及 30 状态结果 |
@@ -89,7 +100,7 @@ compiler_works/
 | 阶段 | 内容 | 当前状态 |
 | --- | --- | --- |
 | 实验一 | 词法分析 | **完成，指定样例验收通过** |
-| 实验二 | 语法分析与递归下降 | **文法改造、Token 接口已完成；递归下降待实现** |
+| 实验二 | 语法分析与递归下降 | **功能已实现，基础及日志测试通过** |
 | 实验三 | 语义分析与中间代码生成 | 后续开发 |
 
-**设计说明：** 本项目针对指导书定义的简化类 C 语言，不是完整 C 编译器。`lexer.c` 通过字符分类、`fgetc()` 与 `ungetc()` 手写扫描；NFA / DFA 图属于理论推导，并非运行时 DFA 表。当前 Parser 只完成基础接口及初始化，尚未实现完整语法识别。
+**设计说明：** 本项目实现指导书定义的简化类 C 语言，并非完整 C 编译器。`lexer.c` 使用手写扫描逻辑；NFA / DFA 图为理论推导，不是运行时 DFA 表。Parser 遵循首错停止策略；多次运行的语法错误日志采用追加方式记录。

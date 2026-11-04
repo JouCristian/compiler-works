@@ -1,44 +1,39 @@
 # 实验二 · 递归下降语法分析
 
-本实验针对课程指导书定义的简化类 C 语言，基于 C11 实现语法分析模块。系统以前一阶段的词法分析结果为输入，按照改造后的文法执行递归下降分析。
+本实验面向课程指导书定义的简化类 C 语言，采用 C11 实现递归下降语法分析。程序通过词法分析获得 Token 序列，在无词法错误的前提下验证源程序的语法结构，并记录第一处语法错误。
 
-## 功能与实现状态
+## 功能实现
 
-| 功能模块 | 实现状态 |
+| 模块 | 实现内容 |
 | --- | --- |
-| TokenBuffer 数据传递 | 已完成 |
-| 词法错误检查与语法分析阶段控制 | 已完成 |
-| Parser 状态初始化与 Token 匹配接口 | 已完成 |
-| 文法改造、FIRST / FOLLOW 集与 LL(1) 检查 | 理论设计完成 |
-| 递归下降语法识别 | 待实现 |
-| 语法错误输出、记录与测试验收 | 待实现 |
+| 文法处理 | 消除直接左递归、提取左公因子；完成 FIRST / FOLLOW 集及 LL(1) 条件检查 |
+| 数据交接 | Lexer 将合法 Token 保存到 `TokenBuffer`，由 Parser 顺序读取 |
+| 语法识别 | 声明、赋值、读写、算术与布尔表达式、`if-else`、`while`、`for`、复合语句 |
+| 错误处理 | 检测第一处语法错误并输出行号与错误描述；词法错误时跳过 Parser |
+| 错误归档 | 将各次运行发现的语法错误以追加方式写入文本日志 |
 
-### 模块结构
+### 程序结构
 
 ```text
-main.c
-  ├── lexer_scan_file()                [lexer.c]
-  │     ├── 词法识别、终端输出和文件记录
+src/main.c
+  ├── lexer_scan_file()                 [src/lexer.c]
   │     └── 合法 Token → TokenBuffer
-  ├── LexerState.error_count 检查
-  │     ├── 存在词法错误 → 不进入语法分析
-  │     └── 词法检查通过 → parser_init()  [parser.c]
-  └── token_buffer_free()
+  ├── 检查词法错误
+  └── parser_init() / parser_program()  [src/parser.c]
+        ├── declaration_list()
+        └── statement_list()
+              └── statement() → 各类语句及表达式
 ```
 
-当前 Parser 已具备 `parser_init()`、`parser_peek()`、`parser_advance()`、`parser_match()` 和 `parser_expect()` 等基础接口；完整的产生式分析函数尚未实现。
+`parser_program()` 是语法分析入口。分析过程对声明、语句、表达式按文法递归匹配，并在程序结束时检查是否存在多余 Token。对于悬挂 `else`，采用就近匹配规则。
 
-## 文法设计
+## 文法与理论资料
 
-依据指导书的 18 组原始语法规则完成左递归消除和左公因子提取，形成包含 **22 组非终结符产生式、44 个候选式**的改造文法。
-
-语句文法涵盖声明、赋值、输入输出、条件分支、循环及复合语句；表达式文法涵盖整数、标识符、四则运算及关系比较。悬挂 `else` 保留特殊解析约定，其冲突原因在理论文档中单独说明。
-
-| 理论文档 | 主要内容 |
+| 文档 | 内容 |
 | --- | --- |
-| [改造后的语法文法](theory/grammar-specification.md) | 22 组完整产生式及文法改造 |
-| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 44 个候选式的 FIRST 集、全部 FOLLOW 集及 LL(1) 检查 |
-| [理论资料索引](theory/README.md) | 语法设计文档导航 |
+| [改造后的语法文法](theory/grammar-specification.md) | 22 组非终结符产生式，共 44 个候选式 |
+| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 产生式右部 FIRST 集、非终结符 FOLLOW 集与 LL(1) 分析 |
+| [理论文档导航](theory/README.md) | 文法与预测分析资料 |
 
 ## 编译与运行
 
@@ -47,17 +42,26 @@ main.c
 ```bash
 make clean && make
 
-# 词法正确的测试输入：验证 Parser 初始化与 Token 传递
+# 合法语法
 ./build/lexer tests/parser/valid.c
 
-# 包含词法错误的指定输入：验证错误阻断
-./build/lexer tests/lexer/instructor_lexer_test.txt
+# 语法错误：第一处错误输出到终端并追加写入日志
+./build/lexer tests/parser/invalid.c
+
+# 查看累计语法错误
+cat docs/grammar-analysis/results/grammar-errors.txt
 ```
 
-词法分析结果输出至 `docs/lexical-analysis/lex.txt`。上述命令仅验证已实现的分析流程；**当前版本尚不提供完整的源程序语法判定**。
+程序遇到词法错误时停止进入语法分析；发现语法错误时报告第一处错误，并返回非零退出码。完整语法测试用例的运行结果见[测试记录](results/README.md)。
 
-## 后续开发
+## 错误日志管理
 
-递归下降产生式函数、语法错误定位与文件记录、指定源程序的语法错误统计将在后续开发阶段实现。
+- **输出位置**：`docs/grammar-analysis/results/grammar-errors.txt`。
+- **写入方式**：追加模式（`fopen(..., "a")`）；每次发现语法错误追加一行，包含输入文件路径、行号和错误描述。
+- **统计方法**：`wc -l docs/grammar-analysis/results/grammar-errors.txt`，统计当前累计记录数。
+- **清理方式**：`make clean` 删除日志和构建产物；普通 `make` 不清除历史记录。
+- **版本管理**：运行时日志由 `.gitignore` 排除，`results/` 目录及其测试说明保留在仓库中。
 
-[返回文档首页](../README.md) · [返回项目主页](../../README.md)
+由于分析器采用首错停止策略，日志中的每条记录对应**一次运行发现的首个语法错误**，不代表单个输入文件内全部潜在的语法错误数量。
+
+[查看测试记录](results/README.md) · [返回文档首页](../README.md) · [返回项目主页](../../README.md)

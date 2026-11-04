@@ -1,70 +1,86 @@
 # 实验二 · 递归下降语法分析
 
-本实验针对简化类 C 语言设计递归下降语法分析程序。分析器读取 Lexer 生成的 Token 序列，依据改造后的文法检查声明、语句和表达式，并在发现第一处语法错误时停止分析。
+在 Lexer 输出的合法 Token 序列上，依据改造后的简化类 C 语言文法进行递归下降语法分析。程序检查声明、表达式和语句结构，并在发现第一处语法错误时停止。
 
-## 功能实现
+## 语法分析功能
 
 | 模块 | 实现内容 |
 | --- | --- |
-| 文法设计 | 18 组原始文法改造为 22 组非终结符产生式；计算 FIRST / FOLLOW 集并检查 LL(1) 条件 |
-| 词法与语法衔接 | Lexer 将合法 Token 保存至 `TokenBuffer`，词法错误存在时跳过 Parser |
-| 递归下降 | 识别声明、赋值、`read/write`、算术与布尔表达式、`if-else`、`while`、`for` 和复合语句 |
-| 错误处理 | 首错停止，输出错误行号和期望/实际 Token |
-| 错误记录 | 跨多次执行将语法错误追加至独立日志，`make clean` 可重置 |
+| 文法处理 | 消除左递归、提取左公因子；计算 FIRST/FOLLOW 集并检查 LL(1) 条件 |
+| Parser 输入 | Lexer 输出的 `TokenBuffer`；存在词法错误时跳过语法分析 |
+| 表达式 | 因子、乘除项、加减表达式、关系运算表达式 |
+| 语句 | 声明、赋值、`read/write`、`if-else`、`while`、`for`、复合语句 |
+| 错误处理 | 首错停止，记录行号与期望/实际词素 |
+| 错误归档 | 追加写入日志，`make clean` 可清除累计运行记录 |
 
-### 实现结构
+### 分析流程
 
 ```text
-main()
-  ├── lexer_scan_file()         → TokenBuffer
-  ├── 词法错误检查              → 有错误则停止
-  └── parser_program()
-        ├── declaration_list() → 声明
-        └── statement_list()   → 各类语句和表达式
+parser_program()
+  ├── 匹配 {
+  ├── declaration_list()   # 声明序列
+  ├── statement_list()     # 语句序列
+  │     └── statement()    # 根据 Token 选择具体语句规则
+  ├── 匹配 }
+  └── 确认输入结束
 ```
 
-Parser 按源程序起始产生式 `{ declaration_list statement_list }` 执行分析，结束时要求 Token 全部消费。悬挂 `else` 按就近匹配原则处理。
+改造后的文法包含 **22 组非终结符产生式、44 个候选式**。其中悬挂 `else` 不满足严格 LL(1) 的无冲突条件，分析器采用 `else` 与最近未匹配 `if` 结合的约定。
+
+## 构建与运行
+
+```bash
+make
+
+# 合法程序：预期语法检查通过
+./build/compiler tests/parser/valid.c
+
+# 非法表达式：预期报告第 3 行的语法错误
+./build/compiler tests/parser/invalid.c
+
+# 教师测试源程序：保留原始语法错误
+./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
+```
+
+默认行为是**遇到第一处语法错误立即返回**。因此，同一原始带错文件不能在单次执行中输出全部潜在错误；逐轮修正后重新运行才能推进检查位置。
+
+## 验收结果
+
+| 测试指标 | 归档结果 |
+| --- | ---: |
+| 逐轮测试中保存的首错记录 | **16 条** |
+| 不重复的错误行号 | **15 行** |
+| 实际终端截图 | **17 张（16 张错误、1 张最终通过）** |
+| 最终修正版本合法 Token | **340** |
+| 最终修正版本关键字 | **35** |
+| 最终语法分析 | **通过** |
+
+[![实验二最终成功截图](results/screenshots/17-syntax-success.png)](results/screenshots/17-syntax-success.png)
+
+以上最终结果来自修正后的测试版本；原始教师源文件保留故意设置的语法错误。完整明细、测试过程和图片证据见[实验二验收报告](results/README.md)。
+
+## 运行时错误日志
+
+```bash
+# 查看累计错误
+cat docs/syntax-analysis/results/syntax-errors.txt
+wc -l docs/syntax-analysis/results/syntax-errors.txt
+
+# 重置运行日志和构建产物
+make clean
+```
+
+- **追加日志**：`results/syntax-errors.txt`，每次运行发现语法错误时写入一条 `源文件:行号:错误描述`。
+- **正式快照**：[syntax-errors-snapshot.txt](results/syntax-errors-snapshot.txt)，保存验收期间实际记录的 16 条首错报告。
+- **统计口径**：一条日志表示一次运行发现的第一处语法错误，不等同于同一文件全部语法错误数。
+- **Git 管理**：运行时日志被忽略，正式快照和 PNG 截图纳入仓库版本控制。
 
 ## 理论设计
 
 | 文档 | 内容 |
 | --- | --- |
-| [改造后的语法文法](theory/grammar-specification.md) | 22 组文法、左递归消除及左公因子提取 |
-| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 44 个候选式的右部 FIRST 集、22 个非终结符 FOLLOW 集与冲突说明 |
-| [理论文档索引](theory/README.md) | 语法设计资料导航 |
+| [改造后的文法](theory/grammar-specification.md) | 22 组语法规则、左递归和左因子处理 |
+| [FIRST/FOLLOW 与 LL(1) 检查](theory/first-follow-sets.md) | 44 个候选式的 FIRST 集与 FOLLOW 集 |
+| [理论文档索引](theory/README.md) | 文法分析资料导航 |
 
-## 编译与使用
-
-从仓库根目录执行：
-
-```bash
-make clean && make
-
-# 基础合法和非法样例
-./build/compiler tests/parser/valid.c
-./build/compiler tests/parser/invalid.c
-
-# 教师提供的原始测试源文件（包含故意设置的语法错误）
-./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
-
-# 查看跨运行追加的语法错误
-cat docs/syntax-analysis/results/syntax-errors.txt
-wc -l docs/syntax-analysis/results/syntax-errors.txt
-```
-
-`make clean` 会删除构建目录和运行时累计日志；普通 `make` 不会删除既有日志。需要连续测试并累积错误记录时，不应在两次执行之间运行 `make clean`。
-
-每次语法分析只报告第一处错误，因此要统计不同错误，需要在修正源程序后重复运行。日志记录格式为 `源文件:行号:错误描述`。原始教师测试文件保持未修正状态，**不能直接通过语法分析**。
-
-## 验收结果
-
-使用教师指定样例逐轮检查并修正后，归档了 **16 条语法首错记录（涉及 15 个不同的错误行号）**。最后一次成功运行的终端截图显示 **340 个合法 Token、35 个关键字、0 个词法错误和 0 个错误行**，语法分析成功。
-
-结果基于逐轮修改后的测试版本；中间部分错误由人工直接修正，并未逐项单独运行截图，不将归档的 16 条记录视作原始文件的全部语法错误。
-
-- [测试记录与错误明细](results/README.md)
-- [已归档的错误日志快照](results/syntax-errors-snapshot.txt)
-- [终端截图索引与图片预览](results/screenshots-manifest.md)
-- [最终通过的原始截图](results/screenshots/17-syntax-success.png)
-
-[返回文档首页](../README.md) · [返回仓库主页](../../README.md)
+[实验二验收报告](results/README.md) · [截图索引](results/screenshots-manifest.md) · [文档索引](../README.md)

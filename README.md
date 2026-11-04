@@ -1,115 +1,104 @@
 # Compiler Works
 
-**基于 C11 的编译原理课程实验工程**。面向课程规定的简化类 C 语言，实现词法分析、递归下降语法分析及后续编译阶段。实验一已通过指定样例验收；实验二已完成语法识别与错误日志功能。
+基于 **C11** 的编译原理课程实验项目，面向教学用途的简化类 C 语言，实现从源程序词法识别到递归下降语法分析的完整处理流程。
 
-**实验一 · 词法分析：已完成并通过指定样例验收（2026-10-29）**  
-**实验二 · 语法分析：递归下降及错误日志已实现，指导样例逐轮修正后通过**
+**项目进度：实验一（词法分析）与实验二（语法分析）已实现并完成阶段验收；语义分析与中间代码生成尚未实现。**
 
-## 实验一成果
+[快速开始](#快速开始) · [实验成果](#实验成果) · [实现架构](#实现架构) · [设计文档](#设计文档)
 
-| 验收指标 | 实测结果 |
-| :--- | ---: |
-| 合法 Token | **89** |
-| 保留字 Token | **15** |
-| 词法错误 | **7** |
-| 出错行数 | **6** |
-| 合法 Token 文件 | **90 行（含表头）** |
+## 实验进度
 
-本次实验使用 [指定测试源程序](tests/lexer/source_code_for_testing_lexicalanalyzer.txt) 验证了保留字、标识符、整数、分界符、运算符、两类注释、最长匹配、错误定位及文件输出。详见 [测试报告与全部七张实测截图](docs/lexical-analysis/results/README.md)。
+| 实验 | 核心内容 | 状态 | 详细资料 |
+| --- | --- | --- | --- |
+| **01 · 词法分析** | Token 识别、注释处理、错误定位、自动机设计 | **已完成** | [实验说明](docs/lexical-analysis/README.md) · [验收报告](docs/lexical-analysis/results/README.md) |
+| **02 · 语法分析** | 文法改造、FIRST/FOLLOW、递归下降、错误日志 | **已完成** | [实验说明](docs/syntax-analysis/README.md) · [验收报告](docs/syntax-analysis/results/README.md) |
+| 03 · 语义分析 | 语义检查与中间代码生成 | 尚未实现 | — |
 
-[![词法分析器错误检测及统计结果](docs/lexical-analysis/results/screenshots/01-errors-and-statistics.png)](docs/lexical-analysis/results/screenshots/01-errors-and-statistics.png)
+## 实验成果
 
-## 功能与实现
+| 实验一 · 词法分析 | 实验二 · 语法分析 |
+| --- | --- |
+| [![词法分析终端实测截图](docs/lexical-analysis/results/screenshots/01-errors-and-statistics.png)](docs/lexical-analysis/results/screenshots/01-errors-and-statistics.png) | [![语法分析最终成功截图](docs/syntax-analysis/results/screenshots/17-syntax-success.png)](docs/syntax-analysis/results/screenshots/17-syntax-success.png) |
+| **89** 个合法 Token，**15** 个关键字；检出 **7** 个词法错误，涉及 **6** 行。 | 归档 **16** 条首错报告（**15** 个不同错误行号）；修正后的测试版本以 **340** 个合法 Token 通过语法分析。 |
+| [七张验收截图及 Token 快照](docs/lexical-analysis/results/README.md) | [17 张实测截图及错误日志快照](docs/syntax-analysis/results/README.md) |
 
-- **词法识别**：标识符、七个保留字、无符号整数、六个分界符、十一个运算符。
-- **注释处理**：识别并跳过单行注释 `//` 与块注释 `/*...*/`，同步维护行号。
-- **错误检测**：识别非法字符、非法数字词素、超长词素及未闭合块注释；分别统计错误数与错误行数。
-- **输出模式**：默认只显示错误和统计；指定 `--all-tokens` 可查看 ANSI 彩色 Token 流。
-- **文件输出**：合法 Token 的类别、词素和行号写入 `docs/lexical-analysis/lex.txt`，不含颜色控制码或非法词素。
-- **语法分析**：基于改造后的 22 组文法，识别声明、赋值、输入输出、控制语句和嵌套复合语句。
-- **错误记录**：每次运行遇到第一处语法错误后停止分析，并将错误位置和信息追加到日志文件。
-- **工程组织**：C11、GCC、Makefile、模块化头文件与独立测试集。
+> 实验二采用“遇到首个语法错误即停止”的策略。教师原始测试文件包含故意设置的错误；最终成功截图来自**逐轮修正后的版本**，并非原始文件直接通过。
 
-## 构建与运行
+## 实现架构
 
-运行环境为 Linux，使用 GCC（C11）与 GNU Make。**命令从仓库根目录执行**：
+```text
+源程序
+  │
+  ▼
+Lexer（src/lexer.c）
+  ├── 识别 Token、跳过注释、统计词法错误
+  ├── 输出合法 Token → docs/lexical-analysis/lex.txt
+  └── 合法 Token → TokenBuffer
+                       │
+             词法错误数为 0
+                       ▼
+             Parser（src/parser.c）
+               ├── 文法预测与递归下降
+               ├── 声明、语句与表达式分析
+               └── 语法错误定位 → 追加错误日志
+```
+
+- **Lexer**：关键字、标识符、无符号整数、运算符、分界符及两种注释；支持 `--all-tokens` 彩色输出。
+- **Parser**：基于改造后的 22 组非终结符产生式，分析声明、赋值、输入输出、条件与循环语句。
+- **错误策略**：词法检查未通过则跳过 Parser；语法分析首错停止，每次运行最多追加一条语法错误记录。
+
+## 快速开始
+
+**环境：** Linux、GCC（C11）、GNU Make。从仓库根目录执行：
 
 ```bash
-make clean && make
+# 编译
+make
 
-# 指定测试源程序：错误与统计
+# 实验一：教师词法测试源程序
 ./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt
 
-# 完整彩色 Token 输出
-./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt --all-tokens
-
-# 输出文件核验
-cat docs/lexical-analysis/lex.txt
-wc -l docs/lexical-analysis/lex.txt
-
-# 实验二：合法与非法语法输入
+# 实验二：合法与非法样例
 ./build/compiler tests/parser/valid.c
 ./build/compiler tests/parser/invalid.c
 
-# 指导书语法测试源程序（原始文件包含故意设置的语法错误）
-./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
-
-# 查看跨运行追加的语法错误日志
+# 查看语法错误累计记录
 cat docs/syntax-analysis/results/syntax-errors.txt
 ```
 
-也可执行 `make run` 使用默认 `tests/lexer/test.c`，或指定 `TESTS=tests/lexer/operatorsTest.c` 运行专项用例。`make clean` 会同时删除构建产物与累计语法错误日志；普通 `make` 不会清空日志。
+使用 `--all-tokens` 可输出完整彩色 Token 流。运行教师语法测试源程序：
+
+```bash
+./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
+```
+
+该文件是**带有故意设置语法错误的原始样例**，运行结果应是首错报告，而非成功提示。连续记录错误时直接重复运行程序；`make clean` 会删除构建目录和运行时追加日志，请勿在需要累积错误的测试之间执行。
 
 ## 仓库结构
 
 ```text
-compiler_works/
-├── src/                         # main.c、lexer.c、parser.c
-├── include/                     # Lexer / Parser API、Token、公共定义
-├── tests/                       # lexer/ 和 parser/ 测试输入
+.
+├── src/                     # main.c / lexer.c / parser.c
+├── include/                 # Lexer、Parser 与公共定义
+├── tests/
+│   ├── lexer/               # 词法测试数据
+│   └── parser/              # 语法测试数据
 ├── docs/
-│   ├── README.md                # 课程实验文档导航
-│   ├── lexical-analysis/
-│   │   ├── README.md            # 实验一设计与成果展示
-│   │   ├── figures/             # 10 张 NFA / DFA 图
-│   │   ├── theory/              # 4 份理论推导文档
-│   │   ├── results/             # 报告、输出快照、7 张实测截图
-│   │   └── lex.txt              # 运行时生成，不纳入版本控制
-│   └── syntax-analysis/
-│       ├── README.md            # 实验二总览
-│       ├── theory/              # 文法定义、FIRST/FOLLOW 与理论索引
-│       └── results/             # 错误快照、测试记录与运行时日志
+│   ├── lexical-analysis/    # 实验一：理论、自动机图、测试报告
+│   └── syntax-analysis/     # 实验二：文法、FIRST/FOLLOW、测试截图
 ├── Makefile
 └── .gitignore
 ```
 
 ## 设计文档
 
-| 资料 | 内容 |
+| 资料 | 主要内容 |
 | --- | --- |
-| [实验一完整说明](docs/lexical-analysis/README.md) | 程序架构、功能、10 张图与验收 |
-| [实验二语法分析](docs/syntax-analysis/README.md) | 系统结构、开发进度及递归下降设计 |
-| [改造后的语法文法](docs/syntax-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
-| [FIRST 与 FOLLOW 集](docs/syntax-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
-| [实验二测试记录](docs/syntax-analysis/results/README.md) | 指导样例首错记录、16 条测试快照和最终验收 |
-| [正则表达式与 Token](docs/lexical-analysis/theory/regex-and-tokens.md) | 词法规则与分类优先级 |
-| [NFA → DFA](docs/lexical-analysis/theory/nfa-to-dfa.md) | 合并 NFA、子集构造、38 状态 DFA |
-| [DFA 最小化](docs/lexical-analysis/theory/dfa-minimization.md) | 划分迭代及 30 状态结果 |
-| [最长匹配与错误恢复](docs/lexical-analysis/theory/maximal-munch.md) | 向前看、回退与错误处理 |
-| [正式测试记录](docs/lexical-analysis/results/README.md) | 89/15/7/6、七张实测截图、完整输出 |
+| [课程实验文档索引](docs/README.md) | 两项实验资料导航 |
+| [词法分析设计](docs/lexical-analysis/README.md) | Token 规则、NFA/DFA、实现方式 |
+| [词法验收结果](docs/lexical-analysis/results/README.md) | 统计、错误明细、七张实测截图 |
+| [语法分析设计](docs/syntax-analysis/README.md) | 递归下降、语法规则、日志处理 |
+| [语法验收结果](docs/syntax-analysis/results/README.md) | 指定样例分轮测试、17 张实测截图 |
+| [语法文法](docs/syntax-analysis/theory/grammar-specification.md) · [FIRST/FOLLOW](docs/syntax-analysis/theory/first-follow-sets.md) | 文法改造与预测分析理论 |
 
-## 实验二验收摘要
-
-依据教师提供的源程序逐轮定位并修正语法错误；归档的测试日志共有 **16 条首错记录（涉及 15 个不同的错误行号）**。最终修正版本的终端截图显示 **340 个合法 Token、35 个关键字、0 个词法错误**，语法分析通过。原始带错文件保留在 `tests/parser/`，与最终修正版本的结果应加以区分。
-
-详见 [实验二测试报告](docs/syntax-analysis/results/README.md) 和 [错误记录快照](docs/syntax-analysis/results/syntax-errors-snapshot.txt)。
-
-## 开发阶段
-
-| 阶段 | 内容 | 当前状态 |
-| --- | --- | --- |
-| 实验一 | 词法分析 | **完成，指定样例验收通过** |
-| 实验二 | 语法分析与递归下降 | **实现完成；指导样例逐轮修正后验收通过** |
-| 实验三 | 语义分析与中间代码生成 | 后续开发 |
-
-**设计说明：** 本项目实现指导书定义的简化类 C 语言，并非完整 C 编译器。`lexer.c` 使用手写扫描逻辑；NFA / DFA 图为理论推导，不是运行时 DFA 表。Parser 遵循首错停止策略；多次运行的语法错误日志采用追加方式记录。
+**范围说明：** 本项目实现课程指导书定义的简化类 C 语言，**不是完整的 C 编译器**。自动机图用于词法理论分析，实际 Lexer 采用手写扫描；实验三尚未开发。

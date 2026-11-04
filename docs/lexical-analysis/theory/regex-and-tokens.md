@@ -28,7 +28,7 @@
 
 代码中的 `include/lexer.h` 目前定义：
 
-| 类型 | 语义 | 写入 `docs/lex.txt` | 计数 |
+| 类型 | 语义 | 写入 `docs/lexical-analysis/lex.txt` | 计数 |
 | --- | --- | --- | --- |
 | TOKEN_KEYWORD | 七个保留字 | 是 | 合法 Token + 关键字 |
 | TOKEN_IDENTIFIER | 非保留字标识符 | 是 | 合法 Token |
@@ -49,7 +49,7 @@
 
 ## 5. 输出格式
 
-程序将合法 Token 写入 `docs/lex.txt`，列为 `type`、`character`、`line`，第一行为表头，内容不包含 ANSI 控制符。默认终端仅显示错误和统计，`--all-tokens` 额外展示全部 Token。
+程序将合法 Token 写入 `docs/lexical-analysis/lex.txt`，列为 `type`、`character`、`line`，第一行为表头，内容不包含 ANSI 控制符。默认终端仅显示错误和统计，`--all-tokens` 额外展示全部 Token。
 
 ## 6. 对应图纸
 

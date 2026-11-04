@@ -1,11 +1,11 @@
-# 实验一 · 词法分析验收结果
+# 实验一 · 词法分析验收报告
 
 **验收日期：2026-10-29**  
 **程序：C11 词法分析器（`src/main.c`、`src/lexer.c`）**  
 **测试输入：[source_code_for_testing_lexicalanalyzer.txt](../../../tests/lexer/source_code_for_testing_lexicalanalyzer.txt)**  
 **运行环境：Ubuntu / GCC / GNU Make**
 
-本次使用指导样例完成词法识别、错误定位、注释处理、运算符最长匹配和纯文本 Token 输出验证，**测试结果与既定词法规则一致**。
+本次测试覆盖词法识别、错误定位、注释处理、最长匹配与纯文本 Token 输出。所有统计均来自指定样例的终端实测及归档文件。
 
 ## 验收结果
 
@@ -40,7 +40,7 @@ make clean && make
 
 出错行集合：**3、4、7、8、13、20**。第 13 行有两个错误，所以错误总数为 7、错误行数为 6。
 
-## 完整 Token 彩色输出
+## 完整 Token 输出与截图归档
 
 ```bash
 ./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt --all-tokens
@@ -80,6 +80,6 @@ wc -l docs/lexical-analysis/lex.txt
 
 ## 验收结论
 
-**实验一的指定样例验收通过。** 本次结果证明程序在提供的样例中正确实现了词法分类、词法错误检测及定位、注释处理、最长匹配和合法 Token 文件输出。实验源码、十张自动机图、四份理论推导、指定测试输入、输出快照及七张终端实测截图均已归档。
+**指定样例验收通过。** 本次结果证明程序在提供的样例中正确实现了词法分类、词法错误检测及定位、注释处理、最长匹配和合法 Token 文件输出。实验源码、十张自动机图、四份理论推导、指定测试输入、输出快照及七张终端实测截图均已归档。
 
-[返回实验一](../README.md) · [返回仓库主页](../../../README.md)
+[实验一总览](../README.md) · [课程文档索引](../../README.md) · [仓库主页](../../../README.md)

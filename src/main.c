@@ -86,9 +86,9 @@ int main(int argc, char *argv[]) {
 			parser.error_line,
 			parser.error_message);
 
-		FILE *error_out = fopen("docs/grammar-analysis/results/grammar-errors.txt", "a");
+		FILE *error_out = fopen("docs/syntax-analysis/results/syntax-errors.txt", "a");
 		if(error_out == NULL) {
-			perror("fopen docs/grammar-analysis/results/grammar-errors.txt");
+			perror("fopen docs/syntax-analysis/results/syntax-errors.txt");
 		} else {
 			fprintf(error_out, "%s:%d: %s\n",
 				argv[1], parser.error_line, parser.error_message);

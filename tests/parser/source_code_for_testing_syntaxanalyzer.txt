@@ -1,0 +1,64 @@
+nt a ;
+int b , c ;
+int d1 , ;                          
+int d2 d3 ;                          
+a = 1 ;
+c = 0 ;
+if ( a < 10 )
+if ( a < 5 )
+c = 1 ;
+else
+c = 2 ;
+else
+c = 3 ;
+if ( a < 10 )
+{
+while ( a < 3 )
+{
+a = a + 1 ;
+if ( a == 2 )
+write a ;
+}
+}
+else
+{
+read b ;
+}
+if ( a < 1 )
+if ( a < 2 )
+if ( a < 3 )
+c = 1 ;
+else
+c = 2 ;
+else
+c = 3 ;
+else
+c = 4 ;
+for ( a = 0 ; a < 2 ; a = a + 1 )
+{
+c = c + a ;
+}
+;
+for ( ; a < 1 ; a = a + 1 )      
+c = 1 ;
+for ( a ; a < 1 ; a = a + 1 )     
+c = 1 ;
+for ( a = 0 ) c = 1 ;              
+for ( a = 0 ; a < 1 ) c = 1 ;        
+for ( a = 0 ; a < 1 ; a = a + 1 ; ) 
+while a < 1 ) c = 1 ;                 
+while ( a < 1 ; c = 1 ;              
+if a < 1 ) c = 1 ;                   
+if ( a < 1 ; c = 1 ;                   
+if ( a ) c = 1 ;                   
+if ( a < 1 ) int x ;          
+c = * 3 ;                           
+c = ( a + 2 ;                      
+c = a b ;                           
+a = 1 < 2 ;                       
+write a < b ;                    
+read ;                               
+read b write c ;                   
+else c = 1 ;                         
+}
+

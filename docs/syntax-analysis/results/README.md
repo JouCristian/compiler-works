@@ -1,47 +1,85 @@
-# 实验二 · 语法分析测试记录
+# 实验二 · 语法分析验收记录
 
-本记录覆盖递归下降语法识别、语法错误报告、跨运行日志追加及清理行为。测试采用 GCC / C11，从仓库根目录执行。
+**实验环境：** Linux / GCC / GNU Make（C11）  
+**指定输入：** [教师测试源程序](../../../tests/parser/source_code_for_testing_syntaxanalyzer.txt)  
+**分析策略：** 递归下降；发现首个语法错误后停止分析
 
-## 测试项目
+本次实验以含有故意设置语法错误的源文件为输入，通过“运行—定位—修正—再次运行”的方式分阶段验证分析器。原始测试文件已单独保留；各轮修正版本的终端证据按测试顺序归档。
 
-| 测试场景 | 输入或操作 | 预期与验证结果 |
-| --- | --- | --- |
-| 合法源程序 | `tests/parser/valid.c` | Lexer 无错误，语法分析成功 |
-| 非法算术表达式 | `tests/parser/invalid.c` | 第 3 行的 `*` 触发语法错误，返回非零退出码 |
-| 重复执行错误用例 | 连续两次运行 `invalid.c` | `grammar-errors.txt` 累计两条错误记录 |
-| 合法输入不追加 | 错误测试后运行 `valid.c` | 原有错误记录条数保持不变 |
-| 词法错误阻断 | 含非法字符的输入 | Lexer 报错并跳过 Parser，不追加语法错误记录 |
-| 缺少右花括号 | 输入在 `}` 前结束 | 报告预期 `}`、实际 EOF 的语法错误 |
-| 控制语句与嵌套 | 含 `if-else`、`while`、`for`、复合语句的合法输入 | 语法分析成功 |
-| 日志重置 | `make clean` 后重新运行错误用例 | 日志重新建立，初始仅有本次错误 |
+## 主要结果
 
-上述项目已在独立构建的对应源码环境中通过验证。GitHub 仓库保留 `valid.c` 与 `invalid.c` 作为基础测试输入；其余情形可通过自定义源程序复现。
+| 指标 | 结果 |
+| --- | ---: |
+| 已归档错误报告 | **16 条** |
+| 不重复的错误行号 | **15 行** |
+| 归档终端截图 | **17 张（16 张错误、1 张最终通过）** |
+| 最终通过时合法 Token | **340** |
+| 最终通过时关键字 | **35** |
+| 最终通过时词法错误 / 错误行 | **0 / 0** |
+| 最终语法分析 | **成功** |
 
-## 错误追加与清理复现
+## 语法错误检测记录
+
+下表对应[已保存的 16 条错误日志](syntax-errors-snapshot.txt)。错误行号采用源文件中的行号，表格中的描述用于分类；实际程序输出记录了具体的期望与当前词素。
+
+| 序号 | 行号 | 期望 Token | 实际 Token | 错误说明 |
+| ---: | ---: | --- | --- | --- |
+| 1 | 04 | `identifier` | `;` | 声明列表中的逗号后缺少标识符 |
+| 2 | 05 | `;` | `d3` | 声明末尾缺少分号 |
+| 3 | 43 | `identifier` | `;` | for 初始化部分缺少赋值左值 |
+| 4 | 45 | `=` | `;` | for 初始化表达式缺少赋值符号 |
+| 5 | 47 | `;` | `)` | for 初始化表达式后缺少分号 |
+| 6 | 48 | `;` | `)` | for 条件表达式后缺少分号 |
+| 7 | 49 | `)` | `;` | for 头部多余分号 |
+| 8 | 50 | `(` | `a` | while 缺少左括号 |
+| 9 | 51 | `)` | `;` | while 条件缺少右括号 |
+| 10 | 52 | `(` | `a` | if 缺少左括号 |
+| 11 | 53 | `)` | `;` | if 条件缺少右括号 |
+| 12 | 60 | `;` | `<` | write 算术表达式后出现关系运算符 |
+| 13 | 61 | `identifier` | `;` | read 缺少标识符 |
+| 14 | 62 | `;` | `write` | read 语句后缺少分号 |
+| 15 | 62 | `;` | `write` | 对同一处错误重复执行 |
+| 16 | 63 | `statement` | `else` | 未匹配的 else |
+
+第 62 行出现两条相同记录，是同一错误经过两次运行得到的结果，**不是两个不同的语法错误**。第 54–59 行等部分中间错误经过人工修正，没有保留逐项运行截图。因此 16 条记录仅表示本次已归档的运行结果，不能作为原文件全部潜在错误的严格计数。
+
+## 最终通过验证
+
+对测试源程序的错误逐步修正后，最后一轮终端显示：
+
+```text
+===== Lexer Statistics =====
+Valid Tokens : 340
+Keywords     : 35
+Errors       : 0
+Error Lines  : 0
+
+Parser received 340 tokens!
+Grammar analysis successfully!
+```
+
+以上为**修正后版本**的终端实测结果；保留在 `tests/parser/` 的原始测试源程序仍包含语法错误。
+
+## 日志管理与复现
 
 ```bash
-# 清除旧日志并构建程序
 make clean && make
 
-# 连续产生两次语法错误
-./build/lexer tests/parser/invalid.c
-./build/lexer tests/parser/invalid.c
+# 原始测试文件：定位第一处错误并追加一条日志
+./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
 
-# 输出应为 2；文件保留两条错误记录
-wc -l docs/grammar-analysis/results/grammar-errors.txt
+# 查看累计结果
+cat docs/syntax-analysis/results/syntax-errors.txt
+wc -l docs/syntax-analysis/results/syntax-errors.txt
 
-# 正确源程序不增加记录数
-./build/lexer tests/parser/valid.c
-wc -l docs/grammar-analysis/results/grammar-errors.txt
-
-# 清空累计记录
+# 清空运行时日志与构建产物
 make clean
 ```
 
-每条记录格式为 `源文件:行号:错误描述`，与终端输出的语法错误位置及描述一致，且不包含 ANSI 颜色控制字符。日志文件为运行产物，不纳入版本控制。
+程序以追加模式打开 `syntax-errors.txt`，因此跨多次执行的错误会累积。运行时日志由 Git 忽略，正式验收记录保存在 [syntax-errors-snapshot.txt](syntax-errors-snapshot.txt)。执行 `make clean` 不会删除已归档快照和本 README。
 
-## 验证范围
+## 截图资料
 
-现有测试证明了主要语法结构的基本识别，以及错误日志的追加和清理机制。实验指导书另外要求对教师提供的指定源语言测试文件进行语法分析，并统计其错误记录；此项结果应在获得该文件并执行测试后单独补充，不以通用样例结果代替。
+17 张原始终端截图按时间顺序整理，截图编号及对应的行号、测试阶段见[终端截图索引](screenshots-manifest.md)。截图原件作为配套归档包单独保存，不在此仓库中伪造图片链接。
 
-[返回实验二总览](../README.md) · [返回文档首页](../../README.md)
+[返回实验二](../README.md) · [返回文档首页](../../README.md)

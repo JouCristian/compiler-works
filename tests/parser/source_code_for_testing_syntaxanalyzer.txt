@@ -1,4 +1,5 @@
-nt a ;
+{
+int a ;
 int b , c ;
 int d1 , ;                          
 int d2 d3 ;                          
@@ -61,4 +62,3 @@ read ;
 read b write c ;                   
 else c = 1 ;                         
 }
-

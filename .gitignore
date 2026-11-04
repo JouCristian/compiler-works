@@ -1,4 +1,4 @@
 build/
 lex.txt
 *.o
-/docs/grammar-analysis/results/grammar-errors.txt
+/docs/syntax-analysis/results/syntax-errors.txt

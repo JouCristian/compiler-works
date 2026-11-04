@@ -1,67 +1,69 @@
 # 实验二 · 递归下降语法分析
 
-本实验面向课程指导书定义的简化类 C 语言，采用 C11 实现递归下降语法分析。程序通过词法分析获得 Token 序列，在无词法错误的前提下验证源程序的语法结构，并记录第一处语法错误。
+本实验针对简化类 C 语言设计递归下降语法分析程序。分析器读取 Lexer 生成的 Token 序列，依据改造后的文法检查声明、语句和表达式，并在发现第一处语法错误时停止分析。
 
 ## 功能实现
 
 | 模块 | 实现内容 |
 | --- | --- |
-| 文法处理 | 消除直接左递归、提取左公因子；完成 FIRST / FOLLOW 集及 LL(1) 条件检查 |
-| 数据交接 | Lexer 将合法 Token 保存到 `TokenBuffer`，由 Parser 顺序读取 |
-| 语法识别 | 声明、赋值、读写、算术与布尔表达式、`if-else`、`while`、`for`、复合语句 |
-| 错误处理 | 检测第一处语法错误并输出行号与错误描述；词法错误时跳过 Parser |
-| 错误归档 | 将各次运行发现的语法错误以追加方式写入文本日志 |
+| 文法设计 | 18 组原始文法改造为 22 组非终结符产生式；计算 FIRST / FOLLOW 集并检查 LL(1) 条件 |
+| 词法与语法衔接 | Lexer 将合法 Token 保存至 `TokenBuffer`，词法错误存在时跳过 Parser |
+| 递归下降 | 识别声明、赋值、`read/write`、算术与布尔表达式、`if-else`、`while`、`for` 和复合语句 |
+| 错误处理 | 首错停止，输出错误行号和期望/实际 Token |
+| 错误记录 | 跨多次执行将语法错误追加至独立日志，`make clean` 可重置 |
 
-### 程序结构
+### 实现结构
 
 ```text
-src/main.c
-  ├── lexer_scan_file()                 [src/lexer.c]
-  │     └── 合法 Token → TokenBuffer
-  ├── 检查词法错误
-  └── parser_init() / parser_program()  [src/parser.c]
-        ├── declaration_list()
-        └── statement_list()
-              └── statement() → 各类语句及表达式
+main()
+  ├── lexer_scan_file()         → TokenBuffer
+  ├── 词法错误检查              → 有错误则停止
+  └── parser_program()
+        ├── declaration_list() → 声明
+        └── statement_list()   → 各类语句和表达式
 ```
 
-`parser_program()` 是语法分析入口。分析过程对声明、语句、表达式按文法递归匹配，并在程序结束时检查是否存在多余 Token。对于悬挂 `else`，采用就近匹配规则。
+Parser 按源程序起始产生式 `{ declaration_list statement_list }` 执行分析，结束时要求 Token 全部消费。悬挂 `else` 按就近匹配原则处理。
 
-## 文法与理论资料
+## 理论设计
 
 | 文档 | 内容 |
 | --- | --- |
-| [改造后的语法文法](theory/grammar-specification.md) | 22 组非终结符产生式，共 44 个候选式 |
-| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 产生式右部 FIRST 集、非终结符 FOLLOW 集与 LL(1) 分析 |
-| [理论文档导航](theory/README.md) | 文法与预测分析资料 |
+| [改造后的语法文法](theory/grammar-specification.md) | 22 组文法、左递归消除及左公因子提取 |
+| [FIRST 与 FOLLOW 集](theory/first-follow-sets.md) | 44 个候选式的右部 FIRST 集、22 个非终结符 FOLLOW 集与冲突说明 |
+| [理论文档索引](theory/README.md) | 语法设计资料导航 |
 
-## 编译与运行
+## 编译与使用
 
-在仓库根目录执行：
+从仓库根目录执行：
 
 ```bash
 make clean && make
 
-# 合法语法
-./build/lexer tests/parser/valid.c
+# 基础合法和非法样例
+./build/compiler tests/parser/valid.c
+./build/compiler tests/parser/invalid.c
 
-# 语法错误：第一处错误输出到终端并追加写入日志
-./build/lexer tests/parser/invalid.c
+# 教师提供的原始测试源文件（包含故意设置的语法错误）
+./build/compiler tests/parser/source_code_for_testing_syntaxanalyzer.txt
 
-# 查看累计语法错误
-cat docs/grammar-analysis/results/grammar-errors.txt
+# 查看跨运行追加的语法错误
+cat docs/syntax-analysis/results/syntax-errors.txt
+wc -l docs/syntax-analysis/results/syntax-errors.txt
 ```
 
-程序遇到词法错误时停止进入语法分析；发现语法错误时报告第一处错误，并返回非零退出码。完整语法测试用例的运行结果见[测试记录](results/README.md)。
+`make clean` 会删除构建目录和运行时累计日志；普通 `make` 不会删除既有日志。需要连续测试并累积错误记录时，不应在两次执行之间运行 `make clean`。
 
-## 错误日志管理
+每次语法分析只报告第一处错误，因此要统计不同错误，需要在修正源程序后重复运行。日志记录格式为 `源文件:行号:错误描述`。原始教师测试文件保持未修正状态，**不能直接通过语法分析**。
 
-- **输出位置**：`docs/grammar-analysis/results/grammar-errors.txt`。
-- **写入方式**：追加模式（`fopen(..., "a")`）；每次发现语法错误追加一行，包含输入文件路径、行号和错误描述。
-- **统计方法**：`wc -l docs/grammar-analysis/results/grammar-errors.txt`，统计当前累计记录数。
-- **清理方式**：`make clean` 删除日志和构建产物；普通 `make` 不清除历史记录。
-- **版本管理**：运行时日志由 `.gitignore` 排除，`results/` 目录及其测试说明保留在仓库中。
+## 验收结果
 
-由于分析器采用首错停止策略，日志中的每条记录对应**一次运行发现的首个语法错误**，不代表单个输入文件内全部潜在的语法错误数量。
+使用教师指定样例逐轮检查并修正后，归档了 **16 条语法首错记录（涉及 15 个不同的错误行号）**。最后一次成功运行的终端截图显示 **340 个合法 Token、35 个关键字、0 个词法错误和 0 个错误行**，语法分析成功。
 
-[查看测试记录](results/README.md) · [返回文档首页](../README.md) · [返回项目主页](../../README.md)
+结果基于逐轮修改后的测试版本；中间部分错误由人工直接修正，并未逐项单独运行截图，不将归档的 16 条记录视作原始文件的全部语法错误。
+
+- [测试记录与错误明细](results/README.md)
+- [已归档的错误日志快照](results/syntax-errors-snapshot.txt)
+- [终端截图索引](results/screenshots-manifest.md)
+
+[返回文档首页](../README.md) · [返回仓库主页](../../README.md)

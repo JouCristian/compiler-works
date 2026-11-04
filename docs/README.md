@@ -7,7 +7,7 @@
 | 阶段 | 实验内容 | 成果 |
 | --- | --- | --- |
 | **[实验一 · 词法分析](lexical-analysis/README.md)** | 正则规则、七类 NFA、合并 NFA、DFA 确定化与最小化、C11 Lexer | **已完成指定样例验收** |
-| **[实验二 · 语法分析](grammar-analysis/README.md)** | 文法改造、FIRST/FOLLOW、递归下降与错误记录 | **功能实现，基础回归通过** |
+| **[实验二 · 语法分析](syntax-analysis/README.md)** | 文法改造、FIRST/FOLLOW、递归下降与错误记录 | **递归下降完成，指导样例修正后验收通过** |
 | 实验三 · 语义分析与翻译 | 语义处理与中间代码生成 | 后续开发 |
 
 ## 实验一成果导航
@@ -32,10 +32,12 @@
 
 | 分类 | 内容 |
 | --- | --- |
-| [语法分析总览](grammar-analysis/README.md) | 文法改造、接口与当前进度 |
-| [改造后的语法文法](grammar-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
-| [FIRST 与 FOLLOW 集](grammar-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
-| [实验二测试记录](grammar-analysis/results/README.md) | 合法/非法输入、错误日志追加及清理测试 |
+| [语法分析总览](syntax-analysis/README.md) | 文法改造、接口与当前进度 |
+| [改造后的语法文法](syntax-analysis/theory/grammar-specification.md) | 22 组产生式与文法改造说明 |
+| [FIRST 与 FOLLOW 集](syntax-analysis/theory/first-follow-sets.md) | 预测分析集合与 LL(1) 冲突检查 |
+| [实验二测试记录](syntax-analysis/results/README.md) | 16 条首错日志、测试截图索引与最终通过结果 |
+
+实验二指定源程序按首错停止策略反复测试，保存 **16 条错误记录（15 个不同的错误行号）**；最终修正版本成功通过语法检查。
 
 ## 文件组织
 
@@ -43,7 +45,7 @@
 - `lexical-analysis/theory/`：四份可在线阅读的数学推导和算法说明。
 - `lexical-analysis/results/`：正式验收报告、输出快照、实际终端截图。
 - `lexical-analysis/lex.txt`：运行时生成的合法 Token 文件，由 Git 忽略；正式输出快照已归档。
-- `grammar-analysis/theory/`：文法定义、FIRST / FOLLOW 集及理论说明。
-- `grammar-analysis/results/`：测试记录；`grammar-errors.txt` 为运行时生成的追加日志，由 Git 忽略。
+- `syntax-analysis/theory/`：文法定义、FIRST / FOLLOW 集及理论说明。
+- `syntax-analysis/results/`：验收记录、静态错误快照及截图索引；`syntax-errors.txt` 为运行时追加日志，由 Git 忽略。
 
 [返回项目主页](../README.md)

@@ -2,7 +2,7 @@
 
 **验收日期：2026-10-29**  
 **程序：C11 词法分析器（`src/main.c`、`src/lexer.c`）**  
-**测试输入：[instructor_lexer_test.txt](../../../tests/lexer/instructor_lexer_test.txt)**  
+**测试输入：[source_code_for_testing_lexicalanalyzer.txt](../../../tests/lexer/source_code_for_testing_lexicalanalyzer.txt)**  
 **运行环境：Ubuntu / GCC / GNU Make**
 
 本次使用指导样例完成词法识别、错误定位、注释处理、运算符最长匹配和纯文本 Token 输出验证，**测试结果与既定词法规则一致**。
@@ -21,7 +21,7 @@
 
 ```bash
 make clean && make
-./build/lexer tests/lexer/instructor_lexer_test.txt
+./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt
 ```
 
 [![默认模式的错误报告与统计](screenshots/01-errors-and-statistics.png)](screenshots/01-errors-and-statistics.png)
@@ -43,7 +43,7 @@ make clean && make
 ## 完整 Token 彩色输出
 
 ```bash
-./build/lexer tests/lexer/instructor_lexer_test.txt --all-tokens
+./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt --all-tokens
 ```
 
 七张原始截图已按运行阶段归档，点击文件即可查看原图：

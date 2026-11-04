@@ -41,7 +41,7 @@
 
 它不同于纯合法词素正则式的最长前缀匹配。应区分“合法语言 DFA”与“错误输入的恢复策略”。
 
-其他 WRONG 可能来自单独的 `!`、未知字符（`@`、`#` 等）、超长词素，或 EOF 时未闭合的 `/*` 注释。错误词素不写入 `docs/lex.txt`。
+其他 WRONG 可能来自单独的 `!`、未知字符（`@`、`#` 等）、超长词素，或 EOF 时未闭合的 `/*` 注释。错误词素不写入 `docs/lexical-analysis/lex.txt`。
 
 ## 5. 行号和统计
 
@@ -49,17 +49,17 @@
 - `skip_line_comment()` 在内部消耗换行后更新行号，外层不重复加。
 - `skip_block_comment()` 消耗块注释内的换行并更新行号。
 - 每遇到一个 WRONG，错误数加一；与 `last_error_line` 不同时，错误行数加一。
-- 注释不计入合法 Token，合法 Token 输出到 `docs/lex.txt`。
+- 注释不计入合法 Token，合法 Token 输出到 `docs/lexical-analysis/lex.txt`。
 
 ## 6. 回归与验收
 
 ```bash
 make clean && make
-make run TESTS=tests/operatorsTest.c
-./build/lexer tests/numbersTest.c --all-tokens
-./build/lexer tests/commentsTest.c --all-tokens
-./build/lexer tests/unknownTest.c
-wc -l docs/lex.txt
+make run TESTS=tests/lexer/operatorsTest.c
+./build/compiler tests/lexer/numbersTest.c --all-tokens
+./build/compiler tests/lexer/commentsTest.c --all-tokens
+./build/compiler tests/lexer/unknownTest.c
+wc -l docs/lexical-analysis/lex.txt
 ```
 
 目前输出文件有**一行表头**，若没有写入错误，`文件行数 = 合法 Token 数 + 1`。

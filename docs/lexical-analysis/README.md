@@ -34,8 +34,8 @@ src/main.c
 ```bash
 make clean && make
 
-./build/lexer tests/lexer/instructor_lexer_test.txt
-./build/lexer tests/lexer/instructor_lexer_test.txt --all-tokens
+./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt
+./build/compiler tests/lexer/source_code_for_testing_lexicalanalyzer.txt --all-tokens
 
 wc -l docs/lexical-analysis/lex.txt
 ```
@@ -44,7 +44,7 @@ wc -l docs/lexical-analysis/lex.txt
 
 ## 指定样例验收 · 2026-10-29
 
-实际运行 [instructor_lexer_test.txt](../../tests/lexer/instructor_lexer_test.txt)，得到：
+实际运行 [source_code_for_testing_lexicalanalyzer.txt](../../tests/lexer/source_code_for_testing_lexicalanalyzer.txt)，得到：
 
 | Valid Tokens | Keywords | Errors | Error Lines | lex.txt（含表头） |
 | ---: | ---: | ---: | ---: | ---: |
@@ -86,4 +86,4 @@ wc -l docs/lexical-analysis/lex.txt
 
 `tests/` 保留了指定样例，以及数字、运算符、注释、未知字符等专项输入，便于回归测试。当前实现遵循课程规定的简化词法规则，同时把合法 Token 保存到 TokenBuffer，供后续 Parser 使用；Lexer 本身不负责语法正确性判定。理论自动机描述合法词素的识别过程；手写 Lexer 另实现了 `TOKEN_WRONG` 错误聚合和统计逻辑。
 
-[实验二 · 语法分析](../grammar-analysis/README.md) · [返回文档首页](../README.md) · [返回项目主页](../../README.md)
+[实验二 · 语法分析](../syntax-analysis/README.md) · [返回文档首页](../README.md) · [返回项目主页](../../README.md)

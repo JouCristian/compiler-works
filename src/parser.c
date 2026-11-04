@@ -174,7 +174,6 @@ static bool parser_variable_list(Parser *parser) {
 	while(parser_match(parser,TOKEN_DELIMITER,",")) {
 		if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
 	}
-	if(!parser_match(parser,TOKEN_DELIMITER,";")) return parser_fail(parser,"',' or ';'");
 	return true;
 }
 
@@ -264,7 +263,7 @@ static bool parser_statement(Parser *parser) {
 static bool parser_statement_list(Parser *parser) {
 	while(true) {
 		const Token *token = parser_peek(parser);
-		if(token == NULL) return false;
+		if(token == NULL) return true;
 		if(token->type == TOKEN_DELIMITER &&
 			strcmp(token->lexeme,"}") == 0)
 			return true;

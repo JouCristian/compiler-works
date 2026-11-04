@@ -20,22 +20,6 @@ void parser_init(Parser *parser,
 		const Token *tokens,
 		size_t count);
 
-const Token *parser_peek(const Parser *parser);
-
-void parser_advance(Parser *parser);
-
-bool parser_match(Parser *parser,
-		TokenType type,
-		const char *expected);
-
-bool parser_expect(Parser *parser,
-		TokenType type,
-		const char *expected);
-
-bool parser_arithmetic_expression(Parser *parser);
-
-bool parser_bool_expression(Parser *parser);
-
 bool parser_program(Parser *parser);
 
 #endif

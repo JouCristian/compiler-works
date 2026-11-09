@@ -13,7 +13,7 @@ typedef enum {
 	IR_EQ, IR_NEQ,			// '==' '!='
 	IR_READ, IR_WRITE,		// 'read' 'write'
 	IR_BR, IR_BRT, IR_BRF,		// 'jump'
-	IR_LABLE			//lable
+	IR_LABEL			//label
 } IRop;
 
 typedef enum  {
@@ -44,11 +44,11 @@ typedef struct {
 	size_t count;
 	size_t capacity;
 	size_t quad_count;
-	size_t lable_count;
+	size_t label_count;
 } IRTable;
 
 void ir_table_init(IRTable *table);
-bool ir_table_append(IRTable *table, IRquad quad);
+bool ir_table_append(IRTable *table, const IRquad *quad);
 void ir_table_free(IRTable *table);
 
 #endif

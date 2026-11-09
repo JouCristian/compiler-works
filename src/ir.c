@@ -1,39 +1,33 @@
-#ifndef IR_H
-#define IR_H
+#include "ir.h"
 
-#include <stddef.h>
-#include "lexer.h"
+#include <stdlib.h>
+#include <stdint.h>
 
-typedef enum {
-	IR_ADD, IR_SUB, IR_MULT, IR_DIV,// '+' '-' '*' '/'
-	IR_ASSIGN,			// '='
-	IR_GT, IR_LT, IR_GET, IR_LET,	// '>' '<' '>=' '<='
-	IR_EQ, IR_NEQ,			// '==' '!='
-	IR_READ, IR_WRITE,		// 'read' 'write'
-	IR_BR, IR_BRT, IR_BRF		// 'jump'
-} IRop;
+void ir_table_init(IRTable *table) {
+	*table = (IRTable){0};
+}
 
-typedef enum  {
-	OPERAND_IMMEDIATE,
-	OPERAND_VARIABLE,
-	OPERAND_TEMP,
-	OPERAND_LABLE,
-	OPERAND_NONE
-} OperandKind;
+bool ir_table_append(IRTable *table, IRquad *quad) {
+	if(table->count == table->capacity) {
+		size_t new_capacity;
+		if(table->capacity == 0) {
+			new_capacity = 2;
+		} else {
+			new_capacity = table->count * 2;
+			if(new_capacity > IRTB_MAX_LEN) return false;
+		}
+		IRquad *new_quads = realloc(table->quads,new_capacity * sizeof(IRquad));
+		if(new_quad == NULL) return false;
+		table->quads = new_quads;
+		table->capacity = new_capacity;
+	}
+	table->quads[table->count++] = *quad;
+	if(quad.op == IR_LABLE) table->lable_count++;
+	else table->quad_count++;
+	return true;
+}
 
-typedef struct {
-	OperandKind kind;
-	union {
-		int value;
-		size_t index;
-	} data;
-} Operand;
-
-typedef struct {
-	IRop op;
-	Operand opr1;
-	Operand opr2;
-	Operand result;
-} IRquad;
-
-#endif
+void ir_table_free(IRTable *table) {
+	free(table->data);
+	*table = (IRTable){0};
+}

@@ -8,16 +8,19 @@
 bool parser_arithmetic_expression(Parser *parser);
 static bool parser_statement(Parser *parser);
 static bool parser_statement_list(Parser *parser);
+static bool parser_declare_identifier(Parser *parser);
 
 void parser_init(Parser *parser,
 		const Token *tokens,
-		size_t count) {
+		size_t count,
+		SemanticContext *semantic) {
 	parser->tokens = tokens;
 	parser->count = count;
 	parser->pos = 0;
 	parser->failed = false;
 	parser->error_line = 0;
 	parser->error_message[0] = '\0';
+	parser->semantic = semantic;
 }
 
 const Token *parser_peek(const Parser *parser) {
@@ -172,14 +175,14 @@ static bool parser_write_stat(Parser *parser) {
 
 static bool parser_variable_list(Parser *parser) {
 	while(parser_match(parser,TOKEN_DELIMITER,",")) {
-		if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
+		if(!parser_declare_identifier(parser)) return false;
 	}
 	return true;
 }
 
 static bool parser_declaration_stat(Parser *parser) {
 	return parser_expect(parser,TOKEN_KEYWORD,"int") &&
-		parser_expect(parser,TOKEN_IDENTIFIER,NULL) &&
+		parser_declare_identifier(parser) &&
 		parser_variable_list(parser) &&
 		parser_expect(parser,TOKEN_DELIMITER,";");
 }
@@ -290,5 +293,34 @@ bool parser_program(Parser *parser) {
 		return false;
 	if(parser_peek(parser) != NULL)
 		return parser_fail(parser,"end of input");
+	return true;
+}
+
+//Semantic analysis
+static bool parser_declare_identifier(Parser *parser) {
+	const Token *token = parser_peek(parser);
+	if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
+	if(parser->semantic == NULL) return true;
+
+	SymbolInsertResult result = symbol_table_insert(
+		&(parser->semantic->symbols),
+		token->lexeme,
+		token->line,
+		NULL		
+	);
+
+	if(result == SYMBOL_SEMANTIC_WRONG) {
+		parser->semantic->error_count++;
+		fprintf(stderr,
+			ANSI_FMT("Semantic error at line %d: \n
+				Duplicate declaration of '%s'\n",ANSI_FG_RED),
+			token->line,
+			token->lexeme);
+		return true;
+	}
+	else if(result == SYMBOL_NO_MEMORY) {
+		parser->semantic->resource_failed = true;
+		return true;
+	}
 	return true;
 }

@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "lexer.h"
+#include "ir.h"
 
 #define SB_MAX_LEN 32768
 
@@ -19,6 +20,13 @@ typedef struct {
 	size_t count;
 	size_t capacity;
 } SymbolTable;
+
+typedef struct {
+	SymbolTable symbols;
+	IRTable irs;
+	size_t error_count;
+	bool resource_failed;
+} SemanticContext;
 
 typedef enum {
 	SYMBOL_OK,

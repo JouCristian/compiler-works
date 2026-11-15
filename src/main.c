@@ -5,6 +5,8 @@
 #include "lexer.h"
 #include "ansi.h"
 #include "parser.h"
+#include "ir.h"
+#include "semantic.h"
 
 static void print_usage(const char *prog) {
 	fprintf(stderr,
@@ -54,6 +56,10 @@ int main(int argc, char *argv[]) {
 	TokenBuffer buffer;
 	token_buffer_init(&buffer);
 
+	SemanticContext semantic = {0};
+	symbol_table_init(&semantic.symbols);
+	ir_table_init(&semantic.ir);
+
 	LexerState state = {0};
 	int exit_code = EXIT_SUCCESS;
 
@@ -77,10 +83,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	Parser parser;
-	parser_init(&parser,buffer.tokens,buffer.count);
+	parser_init(&parser,buffer.tokens,buffer.count,&semantic);
 	printf(ANSI_FMT("Parser received %zu tokens!\n",ANSI_FG_GREEN),parser.count);
 
 	if(!parser_program(&parser)) {
+		if(semantic.resource_failed) {
+			fprintf(stderr,
+				ASIN_FMT("Semantic analysis:out of memory\n",ANSI_FG_RED));
+			exit_code = EXIT_FAILURE;
+			goto finish;
+		}
 		fprintf(stderr,
 			ANSI_FMT("Grammar error at line %d: %s\n",ANSI_FG_RED),
 			parser.error_line,
@@ -103,6 +115,8 @@ int main(int argc, char *argv[]) {
 
 finish:
 	token_buffer_free(&buffer);
+	symbol_table_free(&semantic.symbols);
+	ir_table_free(&semantic.ir);
 	
 	fclose(fp);
 	fclose(lex_out);

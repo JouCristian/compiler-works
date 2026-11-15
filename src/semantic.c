@@ -13,7 +13,7 @@ bool symbol_table_find(const SymbolTable *table,
 	if(table == NULL || name == NULL) return false;
 	for(size_t i = 0; i < table->count; i ++) {
 		if(strcmp(table->symbols[i].name,name) == 0) {
-			*index = i;
+			if(index != NULL) *index = i;
 			return true;
 		}
 	}

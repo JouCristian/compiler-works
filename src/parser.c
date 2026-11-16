@@ -11,6 +11,10 @@ static bool parser_statement(Parser *parser);
 static bool parser_statement_list(Parser *parser);
 static bool parser_declare_identifier(Parser *parser);
 
+static bool parser_check_declared(Parser *parser,
+				  Token *token,
+				  size_t *index);
+
 void parser_init(Parser *parser,
 		const Token *tokens,
 		size_t count,
@@ -107,22 +111,13 @@ static bool parser_factor(Parser *parser) {
 		return parser_expect(parser,TOKEN_DELIMITER,")");
 	}
 
-	const Token *token parser_peek(parser);
+	const Token *token = parser_peek(parser);
 	if(parser_match(parser,TOKEN_IDENTIFIER,NULL)) {
-		if(parser->semantic == NULL) return true;
-		if(!symbol_table_find(&parser->semantic->symbols,
-					token->lexeme,NULL)) {
-			parser->semantic->error_count++;
-			fprintf(stderr,
-				ANSI_FMT("Semantic error at line %d: "
-					"Undeclare variable '%s' \n",
-					ANSI_FG_RED),
-				token->line,
-				token->lexeme);
-		}
+		if(parser->semantic != NULL)
+			parser_check_declared(parser,token,NULL);
 		return true;
 	}
-	if(parser_match(parser,TOKNE_NUMBER,NULL)) return true;
+	if(parser_match(parser,TOKEN_NUMBER,NULL)) return true;
 
 	return parser_fail(parser,"'(',identifier or number");
 }
@@ -166,9 +161,14 @@ bool parser_bool_expression(Parser *parser) {
 }
 
 static bool parser_assignment_expression(Parser *parser) {
-	return parser_expect(parser,TOKEN_IDENTIFIER,NULL) &&
-		parser_expect(parser,TOKEN_OPERATOR,"=") &&
-		parser_arithmetic_expression(parser);
+	const Token *token = parser_peek(parser);
+	if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
+		if(parser->semantic != NULL)
+			parser_check_declared(parser,token,NULL);
+		return parser_expext(parser,TOKEN_OPERATOR,"=") &&
+			parser_arithmetic_expression(parser);
+	}
+	return false;
 }
 
 bool parser_assignment_stat(Parser *parser) {
@@ -177,9 +177,16 @@ bool parser_assignment_stat(Parser *parser) {
 }
 
 static bool parser_read_stat(Parser *parser) {
-	return parser_expect(parser,TOKEN_KEYWORD,"read") &&
-		parser_expect(parser,TOKEN_IDENTIFIER,NULL) &&
-		parser_expect(parser,TOKEN_DELIMITER,";");
+	const Token *token = parser_peek(parser);
+	if(parser_expect(parser,TOKNE_KEYWORD,"read")) {
+		if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
+			if(parser->semantic != NULL)
+				parser_check_declared(parser,token,NULL);
+			return parser_expect(parser,TOKEN_DELIMITER,";");
+		}
+		return false;
+	}
+	return false;
 }
 
 static bool parser_write_stat(Parser *parser) {
@@ -335,6 +342,23 @@ static bool parser_declare_identifier(Parser *parser) {
 	}
 	else if(result == SYMBOL_NO_MEMORY) {
 		parser->semantic->resource_failed = true;
+		return false;
+	}
+	return true;
+}
+
+static bool parser_check_declared(Parser *parser,
+				  const Token *token,
+				  size_t *index) {
+	if(!symbol_table_find(&parser->semantic->symbols,
+				token->lexeme,index)) {
+		parser->semantic->error_count++;
+		fprintf(stderr,
+			ANSI_FMT("Semantic error at line %d: "
+				"Undeclared variables '%s' \n",
+				ANSI_FG_RED),
+			token->line,
+			token->lexeme);
 		return false;
 	}
 	return true;

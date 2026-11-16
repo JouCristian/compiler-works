@@ -107,8 +107,22 @@ static bool parser_factor(Parser *parser) {
 		return parser_expect(parser,TOKEN_DELIMITER,")");
 	}
 
-	if(parser_match(parser,TOKEN_IDENTIFIER,NULL) ||
-		parser_match(parser,TOKEN_NUMBER,NULL)) return true;
+	const Token *token parser_peek(parser);
+	if(parser_match(parser,TOKEN_IDENTIFIER,NULL)) {
+		if(parser->semantic == NULL) return true;
+		if(!symbol_table_find(&parser->semantic->symbols,
+					token->lexeme,NULL)) {
+			parser->semantic->error_count++;
+			fprintf(stderr,
+				ANSI_FMT("Semantic error at line %d: "
+					"Undeclare variable '%s' \n",
+					ANSI_FG_RED),
+				token->line,
+				token->lexeme);
+		}
+		return true;
+	}
+	if(parser_match(parser,TOKNE_NUMBER,NULL)) return true;
 
 	return parser_fail(parser,"'(',identifier or number");
 }
@@ -313,8 +327,8 @@ static bool parser_declare_identifier(Parser *parser) {
 	if(result == SYMBOL_SEMANTIC_WRONG) {
 		parser->semantic->error_count++;
 		fprintf(stderr,
-			ANSI_FMT("Semantic error at line %d: \n
-				Duplicate declaration of '%s'\n",ANSI_FG_RED),
+			ANSI_FMT("Semantic error at line %d:"
+				"Duplicate declaration of '%s'\n",ANSI_FG_RED),
 			token->line,
 			token->lexeme);
 		return true;

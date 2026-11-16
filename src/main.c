@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 	SemanticContext semantic = {0};
 	symbol_table_init(&semantic.symbols);
-	ir_table_init(&semantic.ir);
+	ir_table_init(&semantic.irs);
 
 	LexerState state = {0};
 	int exit_code = EXIT_SUCCESS;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
 			symbol.initialized ? "true" : "false",
 			symbol.declaration_line);
 	}
-	printf("Semantic Errors: %zu, semantic.error_count\n");
+	printf("Semantic Errors: %zu\n",semantic.error_count);
 	if(semantic.error_count > 0) exit_code = EXIT_FAILURE;
 
 finish:

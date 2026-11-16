@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "common.h"
+#include "ansi.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -320,7 +321,7 @@ static bool parser_declare_identifier(Parser *parser) {
 	}
 	else if(result == SYMBOL_NO_MEMORY) {
 		parser->semantic->resource_failed = true;
-		return true;
+		return false;
 	}
 	return true;
 }

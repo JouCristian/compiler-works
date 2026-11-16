@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 	if(!parser_program(&parser)) {
 		if(semantic.resource_failed) {
 			fprintf(stderr,
-				ASIN_FMT("Semantic analysis:out of memory\n",ANSI_FG_RED));
+				ANSI_FMT("Semantic analysis:out of memory\n",ANSI_FG_RED));
 			exit_code = EXIT_FAILURE;
 			goto finish;
 		}
@@ -112,11 +112,22 @@ int main(int argc, char *argv[]) {
 
 	printf(ANSI_FMT("Grammar analysis successfully!\n",ANSI_FG_GREEN));
 
+	printf("\n==========Symbol Table==========\n");
+	for(size_t i = 0; i < semantic.symbols.count; i ++) {
+		Symbol symbol = semantic.symbols.symbols[i];
+		printf("[%zu] %s, initialized = %s, line = %d\n",
+			i,
+			symbol.name,
+			symbol.initialized ? "true" : "false",
+			symbol.declaration_line);
+	}
+	printf("Semantic Errors: %zu, semantic.error_count\n");
+	if(semantic.error_count > 0) exit_code = EXIT_FAILURE;
 
 finish:
 	token_buffer_free(&buffer);
 	symbol_table_free(&semantic.symbols);
-	ir_table_free(&semantic.ir);
+	ir_table_free(&semantic.irs);
 	
 	fclose(fp);
 	fclose(lex_out);

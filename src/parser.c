@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 //Announcement in advance
 bool parser_arithmetic_expression(Parser *parser);
@@ -113,7 +114,7 @@ static bool parser_factor(Parser *parser) {
 
 	const Token *token = parser_peek(parser);
 
-	if(parser_match(parser,TOKEN_IDENTIFER,NULL)) {
+	if(parser_match(parser,TOKEN_IDENTIFIER,NULL)) {
 		if(parser->semantic != NULL) {
 			size_t index;
 			if(parser_check_declared(parser,token,&index)) {
@@ -122,7 +123,7 @@ static bool parser_factor(Parser *parser) {
 					fprintf(stderr,
 						ANSI_FMT("Semantic error at line %d: "
 							 "Use of uninitialized variable '%s'\n",
-							 ASNI_FG_RED),
+							 ANSI_FG_RED),
 						token->line,
 						token->lexeme);
 				}
@@ -243,18 +244,59 @@ static bool parser_declaration_stat(Parser *parser) {
 		parser_expect(parser,TOKEN_DELIMITER,";");
 }
 
-static bool parser_else_part(Parser *parser) {
-	if(parser_match(parser,TOKEN_KEYWORD,"else")) return parser_statement(parser);
-	return true;
-}
-
 static bool parser_if_stat(Parser *parser) {
-	return parser_expect(parser,TOKEN_KEYWORD,"if") &&
-		parser_expect(parser,TOKEN_DELIMITER,"(") &&
-		parser_bool_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,")") &&
-		parser_statement(parser) &&
-		parser_else_part(parser);
+	if(!parser_expect(parser,TOKEN_KEYWORD,"if") ||
+	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
+	   !parser_bool_expression(parser) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,")"))
+		return false;
+	SymbolTable *table = parser->semantic != NULL
+		? &parser->semantic->symbols : NULL;
+	size_t count = table != NULL ? table->count : 0;
+	bool *before = NULL;
+	bool *after_then = NULL;
+	if(count > 0) {
+		before = malloc(count * sizeof(*before));
+		after_then = malloc(count * sizeof(*after_then));
+		if(before == NULL || after_then == NULL) {
+			free(before);
+			free(after_then);
+			parser->semantic->resource_failed = true;
+			return false;
+		}
+		for(size_t i = 0; i < count; i++) {
+			before[i] = table->symbols[i].initialized;
+		}
+	}
+	//analysis Then branch
+	if(!parser_statement(parser)) {
+		free(before);
+		free(after_then);
+		return false;
+	}
+
+	for(size_t i = 0; i < count; i++) {
+		after_then[i] = table->symbols[i].initialized;
+		table->symbols[i].initialized = before[i];
+	}
+
+	//Else branch
+	if(parser_match(parser,TOKEN_KEYWORD,"else")) {
+		if(!parser_statement(parser)) {
+			free(before);
+			free(after_then);
+			return false;
+		}
+
+		for(size_t i = 0; i < count; i++) {
+			table->symbols[i].initialized = 
+				after_then[i] && table->symbols[i].initialized;
+		}
+	}
+
+	free(before);
+	free(after_then);
+	return true;
 }
 
 static bool parser_while_stat(Parser *parser) {

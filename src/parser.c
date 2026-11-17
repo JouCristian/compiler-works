@@ -300,11 +300,31 @@ static bool parser_if_stat(Parser *parser) {
 }
 
 static bool parser_while_stat(Parser *parser) {
-	return parser_expect(parser,TOKEN_KEYWORD,"while") &&
-		parser_expect(parser,TOKEN_DELIMITER,"(") &&
-		parser_bool_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,")") &&
-		parser_statement(parser);
+	if(!parser_expect(parser,TOKEN_KEYWORD,"while") ||
+	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
+	   !parser_bool_expression(parser) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,")"))
+		return false;
+	SymbolTable *table = parser->semantic != NULL
+		? parser->semantic->symbols : NULL;
+	size_t count = table != NULL ? table->count : 0;
+	bool *before = NULL;
+	if(count > 0) {
+		before = malloc(count * sizeof(*before));
+		if(before == NULL) {
+			parser->semantic->resource_failed = true;
+			return false;
+		}
+		for(size_t i = 0; i < count; i++) {
+			before[i] = table->symbols[i].initialized;
+		}
+	}
+	bool success = parser_statement(parser);
+	for(size_t i = 0; i < count; i++) {
+		table->symbols[i].initialized = before[i];
+	}
+	free(before);
+	return success;
 }
 
 static bool parser_for_stat(Parser *parser) {

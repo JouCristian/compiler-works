@@ -12,7 +12,7 @@ static bool parser_statement_list(Parser *parser);
 static bool parser_declare_identifier(Parser *parser);
 
 static bool parser_check_declared(Parser *parser,
-				  Token *token,
+				  const Token *token,
 				  size_t *index);
 
 void parser_init(Parser *parser,
@@ -165,7 +165,7 @@ static bool parser_assignment_expression(Parser *parser) {
 	if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
 		if(parser->semantic != NULL)
 			parser_check_declared(parser,token,NULL);
-		return parser_expext(parser,TOKEN_OPERATOR,"=") &&
+		return parser_expect(parser,TOKEN_OPERATOR,"=") &&
 			parser_arithmetic_expression(parser);
 	}
 	return false;
@@ -177,8 +177,8 @@ bool parser_assignment_stat(Parser *parser) {
 }
 
 static bool parser_read_stat(Parser *parser) {
-	const Token *token = parser_peek(parser);
-	if(parser_expect(parser,TOKNE_KEYWORD,"read")) {
+	if(parser_expect(parser,TOKEN_KEYWORD,"read")) {
+		const Token *token = parser_peek(parser);
 		if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
 			if(parser->semantic != NULL)
 				parser_check_declared(parser,token,NULL);

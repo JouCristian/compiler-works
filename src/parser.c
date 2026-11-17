@@ -112,11 +112,25 @@ static bool parser_factor(Parser *parser) {
 	}
 
 	const Token *token = parser_peek(parser);
-	if(parser_match(parser,TOKEN_IDENTIFIER,NULL)) {
-		if(parser->semantic != NULL)
-			parser_check_declared(parser,token,NULL);
+
+	if(parser_match(parser,TOKEN_IDENTIFER,NULL)) {
+		if(parser->semantic != NULL) {
+			size_t index;
+			if(parser_check_declared(parser,token,&index)) {
+				if(!parser->semantic->symbols.symbols[index].initialized) {
+					parser->semantic->error_count++;
+					fprintf(stderr,
+						ANSI_FMT("Semantic error at line %d: "
+							 "Use of uninitialized variable '%s'\n",
+							 ASNI_FG_RED),
+						token->line,
+						token->lexeme);
+				}
+			}
+		}
 		return true;
-	}
+	}	
+
 	if(parser_match(parser,TOKEN_NUMBER,NULL)) return true;
 
 	return parser_fail(parser,"'(',identifier or number");
@@ -197,7 +211,7 @@ static bool parser_read_stat(Parser *parser) {
 			size_t index = 0;
 			bool declared = false;
 			if(parser->semantic != NULL)
-				parser_check_declared(parser,token,&index);
+				declared = parser_check_declared(parser,token,&index);
 			if(parser_expect(parser,TOKEN_DELIMITER,";")) {
 				if(declared)
 					parser->semantic->symbols.symbols[index].initialized = true;

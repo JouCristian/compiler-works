@@ -172,17 +172,37 @@ static bool parser_assignment_expression(Parser *parser) {
 }
 
 bool parser_assignment_stat(Parser *parser) {
-	return parser_assignment_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,";");
+	const Token *target = parser_peek(parser);
+	size_t errors_before = parser->semantic != NULL
+		? parser->semantic->error_count 
+		: 0;
+	if(!parser_assignment_expression(parser) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,";"))
+		return false;
+	if(parser->semantic != NULL &&
+	   parser->semantic->error_count == errors_before) {
+		size_t index;
+		if(symbol_table_find(&parser->semantic->symbols,
+					target->lexeme,&index)) {
+			parser->semantic->symbols.symbols[index].initialized = true;
+		}
+	}
+	return true;
 }
 
 static bool parser_read_stat(Parser *parser) {
 	if(parser_expect(parser,TOKEN_KEYWORD,"read")) {
 		const Token *token = parser_peek(parser);
 		if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
+			size_t index = 0;
+			bool declared = false;
 			if(parser->semantic != NULL)
-				parser_check_declared(parser,token,NULL);
-			return parser_expect(parser,TOKEN_DELIMITER,";");
+				parser_check_declared(parser,token,&index);
+			if(parser_expect(parser,TOKEN_DELIMITER,";")) {
+				if(declared)
+					parser->semantic->symbols.symbols[index].initialized = true;
+				return true;
+			}
 		}
 		return false;
 	}

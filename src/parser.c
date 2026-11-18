@@ -5,9 +5,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 
 //Announcement in advance
-bool parser_arithmetic_expression(Parser *parser);
+static bool parser_arithmetic_expression(Parser *parser, Operand *result);
 static bool parser_statement(Parser *parser);
 static bool parser_statement_list(Parser *parser);
 static bool parser_declare_identifier(Parser *parser);
@@ -40,6 +42,10 @@ void parser_init_mode(Parser *parser,
 
 static bool parser_check_enabled(const Parser *parser) {
 	return parser->mode == PARSE_CHECK && parser->semantic != NULL;
+}
+
+static bool parser_ir_enabled(const Parser *parser) {
+	return parser->mode == PARSE_IR && parser->semantic != NULL;
 }
 
 const Token *parser_peek(const Parser *parser) {
@@ -119,9 +125,16 @@ static bool parser_fail(Parser *parser, const char *expected) {
 	return false;
 }
 
-static bool parser_factor(Parser *parser) {
+static bool parser_operand_error(Parser *parser, const Token *token, const char *message) {
+	parser->failed = true;
+	parser->error_line = token->line;
+	snprintf(parser->error_message,ERROR_MSG_LEN,"%s: '%.60s'",message,token->lexeme);
+	return false;
+}
+
+static bool parser_factor(Parser *parser, Operand *result) {
 	if(parser_match(parser,TOKEN_DELIMITER,"(")) {
-		if(!parser_arithmetic_expression(parser)) return false;
+		if(!parser_arithmetic_expression(parser,result)) return false;
 		return parser_expect(parser,TOKEN_DELIMITER,")");
 	}
 
@@ -141,32 +154,77 @@ static bool parser_factor(Parser *parser) {
 						token->lexeme);
 				}
 			}
+		} else if(parser_ir_enabled(parser)) {
+			size_t index;
+			if(!symbol_table_find(&parser->semantic->symbols,token->lexeme,&index))
+				return parser_operand_error(parser,token,"Undeclared variable");
+			*result = (Operand){.kind = OPERAND_VARIABLE, .data.index = index};
 		}
 		return true;
-	}	
+	}
 
-	if(parser_match(parser,TOKEN_NUMBER,NULL)) return true;
+	if(parser_match(parser,TOKEN_NUMBER,NULL)) {
+		if(parser_ir_enabled(parser)) {
+			char *end;
+			errno = 0;
+			long value = strtol(token->lexeme,&end,10);
+			if(end == token->lexeme || *end != '\0')
+				return parser_operand_error(parser,token,"Invalid integer literal");
+			if(errno == ERANGE || value < INT_MIN || value > INT_MAX)
+				return parser_operand_error(parser,token,"Integer literal out of int range");
+			*result = (Operand){.kind = OPERAND_IMMEDIATE, .data.value = (int)value};
+		}
+		return true;
+	}
 
 	return parser_fail(parser,"'(',identifier or number");
 }
 
-static bool parser_term(Parser *parser) {
-	if(!parser_factor(parser)) return false;
+static bool parser_emit_arithmetic(Parser *parser, IRop op, Operand *left, Operand right) {
+	IRTable *table = &parser->semantic->irs;
+	Operand temp = ir_new_temp(table);
+	IRquad quad = {op, *left, right, temp};
+	if(temp.kind == OPERAND_NONE || !ir_table_append(table,&quad)) {
+		parser->semantic->resource_failed = true;
+		return false;
+	}
+	*left = temp;
+	return true;
+}
 
-	while(parser_match(parser,TOKEN_OPERATOR,"*") ||
-		parser_match(parser,TOKEN_OPERATOR,"/")) {
-		if(!parser_factor(parser)) return false;
+static bool parser_term(Parser *parser, Operand *result) {
+	if(!parser_factor(parser,result)) return false;
+
+	while(true) {
+		IRop op;
+		if(parser_match(parser,TOKEN_OPERATOR,"*")) op = IR_MULT;
+		else if(parser_match(parser,TOKEN_OPERATOR,"/")) op = IR_DIV;
+		else break;
+
+		Operand right;
+		if(!parser_factor(parser,&right)) return false;
+		if(parser_ir_enabled(parser) && !parser_emit_arithmetic(parser,op,result,right))
+			return false;
 	}
 
 	return true;
 }
 
-bool parser_arithmetic_expression(Parser *parser) {
-	if(!parser_term(parser)) return false;
+static bool parser_arithmetic_expression(Parser *parser, Operand *result) {
+	Operand unused;
+	if(result == NULL) result = &unused;
+	if(!parser_term(parser,result)) return false;
 
-	while(parser_match(parser,TOKEN_OPERATOR,"+") ||
-		parser_match(parser,TOKEN_OPERATOR,"-")) {
-		if(!parser_term(parser)) return false;
+	while(true) {
+		IRop op;
+		if(parser_match(parser,TOKEN_OPERATOR,"+")) op = IR_ADD;
+		else if(parser_match(parser,TOKEN_OPERATOR,"-")) op = IR_SUB;
+		else break;
+
+		Operand right;
+		if(!parser_term(parser,&right)) return false;
+		if(parser_ir_enabled(parser) && !parser_emit_arithmetic(parser,op,result,right))
+			return false;
 	}
 
 	return true;
@@ -183,9 +241,9 @@ static bool parser_relop(Parser *parser) {
 }
 
 bool parser_bool_expression(Parser *parser) {
-	return parser_arithmetic_expression(parser) &&
+	return parser_arithmetic_expression(parser,NULL) &&
 		parser_relop(parser) &&
-		parser_arithmetic_expression(parser);
+		parser_arithmetic_expression(parser,NULL);
 }
 
 static bool parser_assignment_expression(Parser *parser) {
@@ -194,7 +252,7 @@ static bool parser_assignment_expression(Parser *parser) {
 		if(parser_check_enabled(parser))
 			parser_check_declared(parser,token,NULL);
 		return parser_expect(parser,TOKEN_OPERATOR,"=") &&
-			parser_arithmetic_expression(parser);
+			parser_arithmetic_expression(parser,NULL);
 	}
 	return false;
 }
@@ -240,7 +298,7 @@ static bool parser_read_stat(Parser *parser) {
 
 static bool parser_write_stat(Parser *parser) {
 	return parser_expect(parser,TOKEN_KEYWORD,"write") &&
-		parser_arithmetic_expression(parser) &&
+		parser_arithmetic_expression(parser,NULL) &&
 		parser_expect(parser,TOKEN_DELIMITER,";");
 }
 
@@ -350,6 +408,7 @@ static bool parser_for_stat(Parser *parser) {
 		return false;
 	size_t update_pos = parser->pos;
 	SemanticContext *semantic = parser->semantic;
+	// The first look at the update checks syntax only.
 	parser->semantic = NULL;
 	bool update_ok = parser_assignment_expression(parser);
 	parser->semantic = semantic;
@@ -450,7 +509,7 @@ static bool parser_declaration_list(Parser *parser) {
 	}
 }
 
-bool parser_program(Parser *parser) {
+static bool parser_parse_program(Parser *parser) {
 	if(!parser_expect(parser,TOKEN_DELIMITER,"{") ||
 		!parser_declaration_list(parser) ||
 		!parser_statement_list(parser) ||
@@ -459,6 +518,21 @@ bool parser_program(Parser *parser) {
 	if(parser_peek(parser) != NULL)
 		return parser_fail(parser,"end of input");
 	return true;
+}
+
+bool parser_program(Parser *parser) {
+	if(!parser_ir_enabled(parser)) return parser_parse_program(parser);
+
+	IRTable *table = &parser->semantic->irs;
+	size_t count = table->count;
+	size_t quad_count = table->quad_count;
+	size_t temp_count = table->temp_count;
+	if(parser_parse_program(parser)) return true;
+
+	table->count = count;
+	table->quad_count = quad_count;
+	table->temp_count = temp_count;
+	return false;
 }
 
 //Semantic analysis

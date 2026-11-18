@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "parser.h"
@@ -9,6 +10,7 @@ typedef struct {
 	const char *source;
 	size_t error_count;
 	Symbol symbols[4];
+	const char *ir_error;
 } SemanticTest;
 
 static bool check_semantic(const SemanticTest *test, const SemanticContext *semantic) {
@@ -97,7 +99,13 @@ static bool run_test(const SemanticTest *test) {
 	size_t capacity = semantic.symbols.capacity;
 	parser_init_mode(&parser, buffer.tokens, buffer.count, &semantic, PARSE_IR);
 	parsed = parser_program(&parser);
-	if(!parsed || parser.failed || parser.pos != buffer.count) {
+	if(test->ir_error != NULL) {
+		if(parsed || !parser.failed || strcmp(parser.error_message, test->ir_error) != 0) {
+			fprintf(stderr, "FAIL: %s: PARSE_IR expected '%s', got '%s'\n",
+				test->name, test->ir_error, parser.error_message);
+			goto finish;
+		}
+	} else if(!parsed || parser.failed || parser.pos != buffer.count) {
 		fprintf(stderr, "FAIL: %s: PARSE_IR stopped at token %zu/%zu, line %d: %s\n",
 			test->name, parser.pos, buffer.count, parser.error_line, parser.error_message);
 		goto finish;
@@ -126,7 +134,7 @@ int main(void) {
 			"int a, b;\n"
 			"int c;\n"
 			"}\n",
-			0, {{"a", false, 2}, {"b", false, 2}, {"c", false, 3}}
+			0, .symbols = {{"a", false, 2}, {"b", false, 2}, {"c", false, 3}}
 		},
 		{
 			"duplicate declaration keeps the first symbol",
@@ -134,7 +142,7 @@ int main(void) {
 			"int a;\n"
 			"int a, b;\n"
 			"}\n",
-			1, {{"a", false, 2}, {"b", false, 3}}
+			1, .symbols = {{"a", false, 2}, {"b", false, 3}}
 		},
 		{
 			"undeclared assignment, read and expression identifiers",
@@ -142,7 +150,8 @@ int main(void) {
 			"int a;\n"
 			"b = 1; read c; a = d;\n"
 			"}\n",
-			3, {{"a", false, 2}}
+			3, .symbols = {{"a", false, 2}},
+			.ir_error = "Undeclared variable: 'd'"
 		},
 		{
 			"assignment and read initialize declared variables",
@@ -150,7 +159,7 @@ int main(void) {
 			"int a, b, c;\n"
 			"read a; b = a + 1; write b;\n"
 			"}\n",
-			0, {{"a", true, 2}, {"b", true, 2}, {"c", false, 2}}
+			0, .symbols = {{"a", true, 2}, {"b", true, 2}, {"c", false, 2}}
 		},
 		{
 			"invalid assignments leave their targets uninitialized",
@@ -158,7 +167,7 @@ int main(void) {
 			"int a, b, c;\n"
 			"a = a + 1; b = a; c = 1; write c;\n"
 			"}\n",
-			2, {{"a", false, 2}, {"b", false, 2}, {"c", true, 2}}
+			2, .symbols = {{"a", false, 2}, {"b", false, 2}, {"c", true, 2}}
 		},
 		{
 			"if and else both initialize the same variable",
@@ -167,7 +176,7 @@ int main(void) {
 			"if (1 < 2) a = 1; else read a;\n"
 			"write a;\n"
 			"}\n",
-			0, {{"a", true, 2}}
+			0, .symbols = {{"a", true, 2}}
 		},
 		{
 			"if without else preserves the incoming state",
@@ -177,7 +186,7 @@ int main(void) {
 			"if (keep < 2) { a = 1; write a; }\n"
 			"write a; write keep;\n"
 			"}\n",
-			1, {{"a", false, 2}, {"keep", true, 2}}
+			1, .symbols = {{"a", false, 2}, {"keep", true, 2}}
 		},
 		{
 			"if and else retain only variables initialized on both paths",
@@ -186,7 +195,7 @@ int main(void) {
 			"if (1 < 2) a = 1; else b = 1;\n"
 			"write a; write b;\n"
 			"}\n",
-			2, {{"a", false, 2}, {"b", false, 2}}
+			2, .symbols = {{"a", false, 2}, {"b", false, 2}}
 		},
 		{
 			"else starts with the state before the then branch",
@@ -195,7 +204,7 @@ int main(void) {
 			"if (1 < 2) a = 1; else { write a; a = 2; }\n"
 			"write a;\n"
 			"}\n",
-			1, {{"a", true, 2}}
+			1, .symbols = {{"a", true, 2}}
 		},
 		{
 			"while condition is checked before the body",
@@ -203,7 +212,7 @@ int main(void) {
 			"int a;\n"
 			"while (a < 2) a = 1;\n"
 			"}\n",
-			1, {{"a", false, 2}}
+			1, .symbols = {{"a", false, 2}}
 		},
 		{
 			"while body can initialize locally and the loop restores the entry state",
@@ -213,7 +222,7 @@ int main(void) {
 			"while (keep < 2) { a = 1; write a; }\n"
 			"write a; write keep;\n"
 			"}\n",
-			1, {{"a", false, 2}, {"keep", true, 2}}
+			1, .symbols = {{"a", false, 2}, {"keep", true, 2}}
 		},
 		{
 			"for initializer is visible in the condition, body and after the loop",
@@ -222,7 +231,7 @@ int main(void) {
 			"for (i = 0; i < 3; i = i + 1) write i;\n"
 			"write i;\n"
 			"}\n",
-			0, {{"i", true, 2}}
+			0, .symbols = {{"i", true, 2}}
 		},
 		{
 			"for initializer with an invalid right-hand side leaves its target uninitialized",
@@ -230,7 +239,7 @@ int main(void) {
 			"int i, a;\n"
 			"for (i = a; i < 3; i = 0) ;\n"
 			"}\n",
-			2, {{"i", false, 2}, {"a", false, 2}}
+			2, .symbols = {{"i", false, 2}, {"a", false, 2}}
 		},
 		{
 			"for update sees initialization in the body",
@@ -238,7 +247,7 @@ int main(void) {
 			"int i, a;\n"
 			"for (i = 0; i < 3; i = a) a = 1;\n"
 			"}\n",
-			0, {{"i", true, 2}, {"a", false, 2}}
+			0, .symbols = {{"i", true, 2}, {"a", false, 2}}
 		},
 		{
 			"for update reports an uninitialized operand once",
@@ -246,7 +255,7 @@ int main(void) {
 			"int i, a;\n"
 			"for (i = 0; i < 3; i = a) ;\n"
 			"}\n",
-			1, {{"i", true, 2}, {"a", false, 2}}
+			1, .symbols = {{"i", true, 2}, {"a", false, 2}}
 		},
 		{
 			"for update requires a declared target",
@@ -254,7 +263,7 @@ int main(void) {
 			"int i;\n"
 			"for (i = 0; i < 3; a = i) ;\n"
 			"}\n",
-			1, {{"i", true, 2}}
+			1, .symbols = {{"i", true, 2}}
 		},
 		{
 			"for body cannot use initialization from the update",
@@ -262,7 +271,7 @@ int main(void) {
 			"int i, a;\n"
 			"for (i = 0; i < 3; a = 1) write a;\n"
 			"}\n",
-			1, {{"i", true, 2}, {"a", false, 2}}
+			1, .symbols = {{"i", true, 2}, {"a", false, 2}}
 		},
 		{
 			"for restores the state after initialization and before the body",
@@ -272,7 +281,7 @@ int main(void) {
 			"for (i = 0; i < 3; update = body) { body = keep; write body; }\n"
 			"write i + keep; write body; write update;\n"
 			"}\n",
-			2, {{"i", true, 2}, {"body", false, 2}, {"update", false, 2}, {"keep", true, 2}}
+			2, .symbols = {{"i", true, 2}, {"body", false, 2}, {"update", false, 2}, {"keep", true, 2}}
 		}
 	};
 

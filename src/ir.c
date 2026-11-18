@@ -4,7 +4,14 @@
 #include <stdint.h>
 
 void ir_table_init(IRTable *table) {
+	if(table == NULL) return;
 	*table = (IRTable){0};
+}
+
+Operand ir_new_temp(IRTable *table) {
+	if(table == NULL || table->temp_count == SIZE_MAX)
+		return (Operand){.kind = OPERAND_NONE};
+	return (Operand){.kind = OPERAND_TEMP, .data.index = table->temp_count++};
 }
 
 bool ir_table_append(IRTable *table, const IRquad *quad) {
@@ -29,6 +36,7 @@ bool ir_table_append(IRTable *table, const IRquad *quad) {
 }
 
 void ir_table_free(IRTable *table) {
+	if(table == NULL) return;
 	free(table->quads);
 	*table = (IRTable){0};
 }

@@ -8,7 +8,7 @@ INCLUDES := include/lexer.h include/ansi.h include/common.h include/parser.h inc
 TARGET := build/compiler
 TESTS ?= tests/lexer/test.c
 TEST_TARGETS := build/tests/parser/match_test build/tests/parser/expression_test \
-	build/tests/semantic/semantic_test
+	build/tests/semantic/semantic_test build/tests/ir/temp_test
 
 .PHONY: all run test clean
 

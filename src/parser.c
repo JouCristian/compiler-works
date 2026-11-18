@@ -247,14 +247,29 @@ bool parser_bool_expression(Parser *parser) {
 }
 
 static bool parser_assignment_expression(Parser *parser) {
-	const Token *token = parser_peek(parser);
-	if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
-		if(parser_check_enabled(parser))
-			parser_check_declared(parser,token,NULL);
-		return parser_expect(parser,TOKEN_OPERATOR,"=") &&
-			parser_arithmetic_expression(parser,NULL);
+	const Token *target = parser_peek(parser);
+	if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
+	if(parser_check_enabled(parser))
+		parser_check_declared(parser,target,NULL);
+
+	Operand right;
+	if(!parser_expect(parser,TOKEN_OPERATOR,"=") ||
+	   !parser_arithmetic_expression(parser,&right))
+		return false;
+	if(!parser_ir_enabled(parser)) return true;
+
+	size_t index;
+	if(!symbol_table_find(&parser->semantic->symbols,target->lexeme,&index))
+		return parser_operand_error(parser,target,"Undeclared variable");
+	IRquad quad = {
+		IR_ASSIGN, right, {.kind = OPERAND_NONE},
+		{.kind = OPERAND_VARIABLE, .data.index = index}
+	};
+	if(!ir_table_append(&parser->semantic->irs,&quad)) {
+		parser->semantic->resource_failed = true;
+		return false;
 	}
-	return false;
+	return true;
 }
 
 bool parser_assignment_stat(Parser *parser) {

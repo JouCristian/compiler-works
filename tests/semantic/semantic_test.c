@@ -105,6 +105,10 @@ static bool run_test(const SemanticTest *test) {
 				test->name, test->ir_error, parser.error_message);
 			goto finish;
 		}
+		if(semantic.irs.count != 0 || semantic.irs.quad_count != 0 || semantic.irs.temp_count != 0) {
+			fprintf(stderr, "FAIL: %s: failed PARSE_IR left partial IR\n", test->name);
+			goto finish;
+		}
 	} else if(!parsed || parser.failed || parser.pos != buffer.count) {
 		fprintf(stderr, "FAIL: %s: PARSE_IR stopped at token %zu/%zu, line %d: %s\n",
 			test->name, parser.pos, buffer.count, parser.error_line, parser.error_message);
@@ -148,10 +152,10 @@ int main(void) {
 			"undeclared assignment, read and expression identifiers",
 			"{\n"
 			"int a;\n"
-			"b = 1; read c; a = d;\n"
+			"b = 1 + 2; read c; a = d;\n"
 			"}\n",
 			3, .symbols = {{"a", false, 2}},
-			.ir_error = "Undeclared variable: 'd'"
+			.ir_error = "Undeclared variable: 'b'"
 		},
 		{
 			"assignment and read initialize declared variables",
@@ -263,7 +267,8 @@ int main(void) {
 			"int i;\n"
 			"for (i = 0; i < 3; a = i) ;\n"
 			"}\n",
-			1, .symbols = {{"i", true, 2}}
+			1, .symbols = {{"i", true, 2}},
+			.ir_error = "Undeclared variable: 'a'"
 		},
 		{
 			"for body cannot use initialization from the update",
@@ -282,6 +287,15 @@ int main(void) {
 			"write i + keep; write body; write update;\n"
 			"}\n",
 			2, .symbols = {{"i", true, 2}, {"body", false, 2}, {"update", false, 2}, {"keep", true, 2}}
+		},
+		{
+			"assignment right-hand side requires a declared variable",
+			"{\n"
+			"int a;\n"
+			"a = d;\n"
+			"}\n",
+			1, .symbols = {{"a", false, 2}},
+			.ir_error = "Undeclared variable: 'd'"
 		}
 	};
 

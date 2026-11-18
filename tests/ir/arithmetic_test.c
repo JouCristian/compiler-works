@@ -9,26 +9,29 @@
 #define IMM(n) { .kind = OPERAND_IMMEDIATE, .data.value = (n) }
 #define VAR(n) { .kind = OPERAND_VARIABLE, .data.index = (n) }
 #define TEMP(n) { .kind = OPERAND_TEMP, .data.index = (n) }
+#define NONE { .kind = OPERAND_NONE }
 
 typedef struct {
 	const char *name;
 	const char *source;
 	const IRquad *quads;
 	size_t count;
+	size_t temp_count;
 	int error_line;
 } ArithmeticTest;
 
 static bool same_operand(Operand actual, Operand expected) {
 	if(actual.kind != expected.kind) return false;
+	if(expected.kind == OPERAND_NONE) return true;
 	if(expected.kind == OPERAND_IMMEDIATE) return actual.data.value == expected.data.value;
 	return actual.data.index == expected.data.index;
 }
 
 static bool check_quads(const ArithmeticTest *test, const IRTable *table) {
 	if(table->count != test->count || table->quad_count != test->count ||
-	   table->temp_count != test->count || table->label_count != 0) {
-		fprintf(stderr,"FAIL: %s: expected %zu quads and temps, got %zu quads, %zu temps, %zu labels\n",
-			test->name,test->count,table->count,table->temp_count,table->label_count);
+	   table->temp_count != test->temp_count || table->label_count != 0) {
+		fprintf(stderr,"FAIL: %s: expected %zu quads and %zu temps, got %zu quads, %zu temps, %zu labels\n",
+			test->name,test->count,test->temp_count,table->count,table->temp_count,table->label_count);
 		return false;
 	}
 	for(size_t i = 0; i < test->count; i++) {
@@ -112,11 +115,19 @@ finish:
 }
 
 int main(void) {
+	const IRquad assignment[] = {{IR_ASSIGN, IMM(42), NONE, VAR(1)}};
 	const IRquad precedence[] = {
 		{IR_MULT, IMM(3), IMM(4), TEMP(0)},
 		{IR_ADD, VAR(1), TEMP(0), TEMP(1)},
 		{IR_DIV, IMM(8), IMM(2), TEMP(2)},
-		{IR_SUB, TEMP(1), TEMP(2), TEMP(3)}
+		{IR_SUB, TEMP(1), TEMP(2), TEMP(3)},
+		{IR_ASSIGN, TEMP(3), NONE, VAR(1)}
+	};
+	const IRquad consecutive[] = {
+		{IR_ASSIGN, IMM(7), NONE, VAR(0)},
+		{IR_ASSIGN, VAR(0), NONE, VAR(1)},
+		{IR_ADD, VAR(1), IMM(1), TEMP(0)},
+		{IR_ASSIGN, TEMP(0), NONE, VAR(0)}
 	};
 	const IRquad parentheses[] = {
 		{IR_ADD, IMM(2), IMM(3), TEMP(0)},
@@ -127,10 +138,12 @@ int main(void) {
 	};
 	const IRquad loop[] = {
 		{IR_ADD, IMM(1), IMM(2), TEMP(0)},
+		{IR_ASSIGN, TEMP(0), NONE, VAR(0)},
 		{IR_ADD, VAR(0), IMM(1), TEMP(1)},
 		{IR_MULT, IMM(5), IMM(2), TEMP(2)},
 		{IR_MULT, VAR(0), IMM(4), TEMP(3)},
-		{IR_ADD, VAR(0), IMM(3), TEMP(4)}
+		{IR_ADD, VAR(0), IMM(3), TEMP(4)},
+		{IR_ASSIGN, TEMP(4), NONE, VAR(0)}
 	};
 	const IRquad int_max[] = {{IR_ADD, IMM(INT_MAX), IMM(0), TEMP(0)}};
 	char limit_source[2 * MAX_TOKEN_LEN];
@@ -142,17 +155,21 @@ int main(void) {
 	snprintf(above_long_source,sizeof(above_long_source),"{\nwrite %ld0;\n}",LONG_MAX);
 
 	const ArithmeticTest tests[] = {
-		{"arithmetic precedence and variable index",
+		{"simple assignment uses the target's symbol index without a temporary",
+		 "{ int unused, a; a = 42; }", assignment, ARRLEN(assignment), 0, 0},
+		{"arithmetic assignment uses the final temporary",
 		 "{ int unused, a; read a; a = a + 3 * 4 - 8 / 2; write a; }",
-		 precedence, ARRLEN(precedence), 0},
+		 precedence, ARRLEN(precedence), 4, 0},
+		{"consecutive assignments preserve statement order and temporary numbering",
+		 "{ int a, b; a = 7; b = a; a = b + 1; }", consecutive, ARRLEN(consecutive), 1, 0},
 		{"parentheses and left associativity",
-		 "{ write (2 + 3) * 4 / (8 - 6) / 2; }", parentheses, ARRLEN(parentheses), 0},
-		{"for update emits once after the body",
+		 "{ write (2 + 3) * 4 / (8 - 6) / 2; }", parentheses, ARRLEN(parentheses), 5, 0},
+		{"for initializer and update each assign once, with update after the body",
 		 "{ int i; for (i = 1 + 2; i + 1 < 5 * 2; i = i + 3) write i * 4; }",
-		 loop, ARRLEN(loop), 0},
-		{"INT_MAX is preserved", limit_source, int_max, ARRLEN(int_max), 0},
-		{"INT_MAX + 1 is rejected and partial IR is discarded", above_int_source, NULL, 0, 3},
-		{"strtol overflow is rejected", above_long_source, NULL, 0, 2}
+		 loop, ARRLEN(loop), 5, 0},
+		{"INT_MAX is preserved", limit_source, int_max, ARRLEN(int_max), 1, 0},
+		{"INT_MAX + 1 is rejected and partial IR is discarded", above_int_source, NULL, 0, 0, 3},
+		{"strtol overflow is rejected", above_long_source, NULL, 0, 0, 2}
 	};
 
 	size_t failures = 0;
@@ -164,6 +181,6 @@ int main(void) {
 			failures++;
 		}
 	}
-	printf("Arithmetic IR tests: %zu/%zu passed\n",ARRLEN(tests) - failures,ARRLEN(tests));
+	printf("Expression IR tests: %zu/%zu passed\n",ARRLEN(tests) - failures,ARRLEN(tests));
 	return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }

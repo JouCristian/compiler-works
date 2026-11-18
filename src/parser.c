@@ -293,28 +293,46 @@ bool parser_assignment_stat(Parser *parser) {
 }
 
 static bool parser_read_stat(Parser *parser) {
-	if(parser_expect(parser,TOKEN_KEYWORD,"read")) {
-		const Token *token = parser_peek(parser);
-		if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
-			size_t index = 0;
-			bool declared = false;
-			if(parser_check_enabled(parser))
-				declared = parser_check_declared(parser,token,&index);
-			if(parser_expect(parser,TOKEN_DELIMITER,";")) {
-				if(declared)
-					parser->semantic->symbols.symbols[index].initialized = true;
-				return true;
-			}
-		}
+	if(!parser_expect(parser,TOKEN_KEYWORD,"read")) return false;
+	const Token *token = parser_peek(parser);
+	if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
+
+	size_t index = 0;
+	bool declared = false;
+	if(parser_check_enabled(parser))
+		declared = parser_check_declared(parser,token,&index);
+	if(!parser_expect(parser,TOKEN_DELIMITER,";")) return false;
+	if(declared)
+		parser->semantic->symbols.symbols[index].initialized = true;
+	if(!parser_ir_enabled(parser)) return true;
+
+	if(!symbol_table_find(&parser->semantic->symbols,token->lexeme,&index))
+		return parser_operand_error(parser,token,"Undeclared variable");
+	IRquad quad = {
+		IR_READ, {.kind = OPERAND_NONE}, {.kind = OPERAND_NONE},
+		{.kind = OPERAND_VARIABLE, .data.index = index}
+	};
+	if(!ir_table_append(&parser->semantic->irs,&quad)) {
+		parser->semantic->resource_failed = true;
 		return false;
 	}
-	return false;
+	return true;
 }
 
 static bool parser_write_stat(Parser *parser) {
-	return parser_expect(parser,TOKEN_KEYWORD,"write") &&
-		parser_arithmetic_expression(parser,NULL) &&
-		parser_expect(parser,TOKEN_DELIMITER,";");
+	Operand value;
+	if(!parser_expect(parser,TOKEN_KEYWORD,"write") ||
+	   !parser_arithmetic_expression(parser,&value) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,";"))
+		return false;
+	if(!parser_ir_enabled(parser)) return true;
+
+	IRquad quad = {IR_WRITE, value, {.kind = OPERAND_NONE}, {.kind = OPERAND_NONE}};
+	if(!ir_table_append(&parser->semantic->irs,&quad)) {
+		parser->semantic->resource_failed = true;
+		return false;
+	}
+	return true;
 }
 
 static bool parser_variable_list(Parser *parser) {

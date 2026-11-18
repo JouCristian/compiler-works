@@ -117,11 +117,13 @@ finish:
 int main(void) {
 	const IRquad assignment[] = {{IR_ASSIGN, IMM(42), NONE, VAR(1)}};
 	const IRquad precedence[] = {
+		{IR_READ, NONE, NONE, VAR(1)},
 		{IR_MULT, IMM(3), IMM(4), TEMP(0)},
 		{IR_ADD, VAR(1), TEMP(0), TEMP(1)},
 		{IR_DIV, IMM(8), IMM(2), TEMP(2)},
 		{IR_SUB, TEMP(1), TEMP(2), TEMP(3)},
-		{IR_ASSIGN, TEMP(3), NONE, VAR(1)}
+		{IR_ASSIGN, TEMP(3), NONE, VAR(1)},
+		{IR_WRITE, VAR(1), NONE, NONE}
 	};
 	const IRquad consecutive[] = {
 		{IR_ASSIGN, IMM(7), NONE, VAR(0)},
@@ -134,7 +136,8 @@ int main(void) {
 		{IR_MULT, TEMP(0), IMM(4), TEMP(1)},
 		{IR_SUB, IMM(8), IMM(6), TEMP(2)},
 		{IR_DIV, TEMP(1), TEMP(2), TEMP(3)},
-		{IR_DIV, TEMP(3), IMM(2), TEMP(4)}
+		{IR_DIV, TEMP(3), IMM(2), TEMP(4)},
+		{IR_WRITE, TEMP(4), NONE, NONE}
 	};
 	const IRquad loop[] = {
 		{IR_ADD, IMM(1), IMM(2), TEMP(0)},
@@ -142,10 +145,24 @@ int main(void) {
 		{IR_ADD, VAR(0), IMM(1), TEMP(1)},
 		{IR_MULT, IMM(5), IMM(2), TEMP(2)},
 		{IR_MULT, VAR(0), IMM(4), TEMP(3)},
+		{IR_WRITE, TEMP(3), NONE, NONE},
 		{IR_ADD, VAR(0), IMM(3), TEMP(4)},
 		{IR_ASSIGN, TEMP(4), NONE, VAR(0)}
 	};
-	const IRquad int_max[] = {{IR_ADD, IMM(INT_MAX), IMM(0), TEMP(0)}};
+	const IRquad read[] = {{IR_READ, NONE, NONE, VAR(1)}};
+	const IRquad write_immediate[] = {{IR_WRITE, IMM(42), NONE, NONE}};
+	const IRquad io_sequence[] = {
+		{IR_READ, NONE, NONE, VAR(1)},
+		{IR_READ, NONE, NONE, VAR(0)},
+		{IR_WRITE, VAR(0), NONE, NONE},
+		{IR_WRITE, IMM(7), NONE, NONE},
+		{IR_MULT, VAR(1), VAR(0), TEMP(0)},
+		{IR_WRITE, TEMP(0), NONE, NONE}
+	};
+	const IRquad int_max[] = {
+		{IR_ADD, IMM(INT_MAX), IMM(0), TEMP(0)},
+		{IR_WRITE, TEMP(0), NONE, NONE}
+	};
 	char limit_source[2 * MAX_TOKEN_LEN];
 	char above_int_source[2 * MAX_TOKEN_LEN];
 	char above_long_source[2 * MAX_TOKEN_LEN];
@@ -167,6 +184,13 @@ int main(void) {
 		{"for initializer and update each assign once, with update after the body",
 		 "{ int i; for (i = 1 + 2; i + 1 < 5 * 2; i = i + 3) write i * 4; }",
 		 loop, ARRLEN(loop), 5, 0},
+		{"read uses the target's symbol index without a temporary",
+		 "{ int unused, a; read a; }", read, ARRLEN(read), 0, 0},
+		{"write uses a literal as an immediate operand",
+		 "{ write 42; }", write_immediate, ARRLEN(write_immediate), 0, 0},
+		{"read and write preserve statement order and use the expression result",
+		 "{ int a, b; read b; read a; write a; write 7; write b * a; }",
+		 io_sequence, ARRLEN(io_sequence), 1, 0},
 		{"INT_MAX is preserved", limit_source, int_max, ARRLEN(int_max), 1, 0},
 		{"INT_MAX + 1 is rejected and partial IR is discarded", above_int_source, NULL, 0, 0, 3},
 		{"strtol overflow is rejected", above_long_source, NULL, 0, 0, 2}

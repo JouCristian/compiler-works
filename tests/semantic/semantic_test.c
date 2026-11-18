@@ -296,6 +296,16 @@ int main(void) {
 			"}\n",
 			1, .symbols = {{"a", false, 2}},
 			.ir_error = "Undeclared variable: 'd'"
+		},
+		{
+			"undeclared read target rolls back earlier read and write IR",
+			"{\n"
+			"int a;\n"
+			"read a; write a + 1;\n"
+			"read b;\n"
+			"}\n",
+			1, .symbols = {{"a", true, 2}},
+			.ir_error = "Undeclared variable: 'b'"
 		}
 	};
 

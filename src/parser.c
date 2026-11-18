@@ -306,7 +306,7 @@ static bool parser_while_stat(Parser *parser) {
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
 	SymbolTable *table = parser->semantic != NULL
-		? parser->semantic->symbols : NULL;
+		? &parser->semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
 	bool *before = NULL;
 	if(count > 0) {
@@ -328,15 +328,48 @@ static bool parser_while_stat(Parser *parser) {
 }
 
 static bool parser_for_stat(Parser *parser) {
-	return parser_expect(parser,TOKEN_KEYWORD,"for") &&
-		parser_expect(parser,TOKEN_DELIMITER,"(") &&
-		parser_assignment_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,";") &&
-		parser_bool_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,";") &&
-		parser_assignment_expression(parser) &&
-		parser_expect(parser,TOKEN_DELIMITER,")") &&
-		parser_statement(parser);
+	if(!parser_expect(parser,TOKEN_KEYWORD,"for") ||
+	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
+	   !parser_assignment_stat(parser) ||
+	   !parser_bool_expression(parser) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,";"))
+		return false;
+	size_t update_pos = parser->pos;
+	SemanticContext *semantic = parser->semantic;
+	parser->semantic = NULL;
+	bool update_ok = parser_assignment_expression(parser);
+	parser->semantic = semantic;
+
+	if(!update_ok ||
+	   !parser_expect(parser,TOKEN_DELIMITER,")"))
+		return false;
+	SymbolTable *table = semantic != NULL
+		? &semantic->symbols : NULL;
+	size_t count = table != NULL ? table->count : 0;
+	bool *before = NULL;
+
+	if(count > 0) {
+		before = malloc(count * sizeof(*before));
+		if(before == NULL) {
+			semantic->resource_failed = true;
+			return false;
+		}
+		for(size_t i = 0; i < count; i ++) {
+			before[i] = table->symbols[i].initialized;
+		}
+	}
+	bool success = parser_statement(parser);
+	if(success) {
+		size_t end_pos =  parser->pos;
+		parser->pos = update_pos;
+		success = parser_assignment_expression(parser);
+		parser->pos = end_pos;
+	}
+	for(size_t i = 0; i < count; i++) {
+		table->symbols[i].initialized = before[i];
+	}
+	free(before);
+	return success;
 }
 
 static bool parser_compound_stat(Parser *parser) {

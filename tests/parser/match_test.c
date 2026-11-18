@@ -1,28 +1,29 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
 #include "parser.h"
 
 int main(void) {
-    Token tokens[] = {
-        {TOKEN_KEYWORD, "read", 1},
-        {TOKEN_IDENTIFIER, "a", 1},
-        {TOKEN_DELIMITER, "+", 1}
-    };
+	const Token tokens[] = {
+		{TOKEN_DELIMITER, "{", 1},
+		{TOKEN_KEYWORD, "read", 2},
+		{TOKEN_IDENTIFIER, "a", 2},
+		{TOKEN_OPERATOR, "+", 2},
+		{TOKEN_DELIMITER, "}", 3}
+	};
+	const char *expected = "Expected ';',got '+'";
+	Parser parser;
+	parser_init(&parser, tokens, ARRLEN(tokens), NULL);
 
-    Parser parser;
-    parser_init(&parser, tokens, 3);
+	if(parser_program(&parser) || !parser.failed || parser.error_line != 2 ||
+	   strcmp(parser.error_message, expected) != 0) {
+		fprintf(stderr, "FAIL: read expected line 2: %s; got line %d: %s\n",
+			expected, parser.error_line, parser.error_message);
+		return EXIT_FAILURE;
+	}
 
-    bool success =
-        parser_expect(&parser, TOKEN_KEYWORD, "read") &&
-        parser_expect(&parser, TOKEN_IDENTIFIER, NULL) &&
-        parser_expect(&parser, TOKEN_DELIMITER, ";");
-
-    if (success && parser.pos == parser.count) {
-        printf("Syntax analysis successful!\n");
-    } else {
-        printf("Syntax error at line %d: %s\n",
-               parser.error_line,
-               parser.error_message);
-    }
-
-    return 0;
+	printf("PASS: read requires a semicolon\n");
+	return EXIT_SUCCESS;
 }

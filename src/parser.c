@@ -20,6 +20,14 @@ void parser_init(Parser *parser,
 		const Token *tokens,
 		size_t count,
 		SemanticContext *semantic) {
+	parser_init_mode(parser,tokens,count,semantic,PARSE_CHECK);
+}
+
+void parser_init_mode(Parser *parser,
+		const Token *tokens,
+		size_t count,
+		SemanticContext *semantic,
+		ParseMode mode) {
 	parser->tokens = tokens;
 	parser->count = count;
 	parser->pos = 0;
@@ -27,6 +35,11 @@ void parser_init(Parser *parser,
 	parser->error_line = 0;
 	parser->error_message[0] = '\0';
 	parser->semantic = semantic;
+	parser->mode = mode;
+}
+
+static bool parser_check_enabled(const Parser *parser) {
+	return parser->mode == PARSE_CHECK && parser->semantic != NULL;
 }
 
 const Token *parser_peek(const Parser *parser) {
@@ -115,7 +128,7 @@ static bool parser_factor(Parser *parser) {
 	const Token *token = parser_peek(parser);
 
 	if(parser_match(parser,TOKEN_IDENTIFIER,NULL)) {
-		if(parser->semantic != NULL) {
+		if(parser_check_enabled(parser)) {
 			size_t index;
 			if(parser_check_declared(parser,token,&index)) {
 				if(!parser->semantic->symbols.symbols[index].initialized) {
@@ -178,7 +191,7 @@ bool parser_bool_expression(Parser *parser) {
 static bool parser_assignment_expression(Parser *parser) {
 	const Token *token = parser_peek(parser);
 	if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
-		if(parser->semantic != NULL)
+		if(parser_check_enabled(parser))
 			parser_check_declared(parser,token,NULL);
 		return parser_expect(parser,TOKEN_OPERATOR,"=") &&
 			parser_arithmetic_expression(parser);
@@ -188,13 +201,14 @@ static bool parser_assignment_expression(Parser *parser) {
 
 bool parser_assignment_stat(Parser *parser) {
 	const Token *target = parser_peek(parser);
-	size_t errors_before = parser->semantic != NULL
-		? parser->semantic->error_count 
+	bool checking = parser_check_enabled(parser);
+	size_t errors_before = checking
+		? parser->semantic->error_count
 		: 0;
 	if(!parser_assignment_expression(parser) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,";"))
 		return false;
-	if(parser->semantic != NULL &&
+	if(checking &&
 	   parser->semantic->error_count == errors_before) {
 		size_t index;
 		if(symbol_table_find(&parser->semantic->symbols,
@@ -211,7 +225,7 @@ static bool parser_read_stat(Parser *parser) {
 		if(parser_expect(parser,TOKEN_IDENTIFIER,NULL)) {
 			size_t index = 0;
 			bool declared = false;
-			if(parser->semantic != NULL)
+			if(parser_check_enabled(parser))
 				declared = parser_check_declared(parser,token,&index);
 			if(parser_expect(parser,TOKEN_DELIMITER,";")) {
 				if(declared)
@@ -250,7 +264,7 @@ static bool parser_if_stat(Parser *parser) {
 	   !parser_bool_expression(parser) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
-	SymbolTable *table = parser->semantic != NULL
+	SymbolTable *table = parser_check_enabled(parser)
 		? &parser->semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
 	bool *before = NULL;
@@ -305,7 +319,7 @@ static bool parser_while_stat(Parser *parser) {
 	   !parser_bool_expression(parser) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
-	SymbolTable *table = parser->semantic != NULL
+	SymbolTable *table = parser_check_enabled(parser)
 		? &parser->semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
 	bool *before = NULL;
@@ -343,7 +357,7 @@ static bool parser_for_stat(Parser *parser) {
 	if(!update_ok ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
-	SymbolTable *table = semantic != NULL
+	SymbolTable *table = parser_check_enabled(parser)
 		? &semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
 	bool *before = NULL;
@@ -451,7 +465,7 @@ bool parser_program(Parser *parser) {
 static bool parser_declare_identifier(Parser *parser) {
 	const Token *token = parser_peek(parser);
 	if(!parser_expect(parser,TOKEN_IDENTIFIER,NULL)) return false;
-	if(parser->semantic == NULL) return true;
+	if(!parser_check_enabled(parser)) return true;
 
 	SymbolInsertResult result = symbol_table_insert(
 		&(parser->semantic->symbols),

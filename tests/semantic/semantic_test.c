@@ -92,6 +92,21 @@ static bool run_test(const SemanticTest *test) {
 			test->name, parser.pos, parser.count, parser.error_line, parser.error_message);
 		goto finish;
 	}
+	if(!check_semantic(test, &semantic)) goto finish;
+
+	size_t capacity = semantic.symbols.capacity;
+	parser_init_mode(&parser, buffer.tokens, buffer.count, &semantic, PARSE_IR);
+	parsed = parser_program(&parser);
+	if(!parsed || parser.failed || parser.pos != buffer.count) {
+		fprintf(stderr, "FAIL: %s: PARSE_IR stopped at token %zu/%zu, line %d: %s\n",
+			test->name, parser.pos, buffer.count, parser.error_line, parser.error_message);
+		goto finish;
+	}
+	if(parser.semantic != &semantic || semantic.resource_failed ||
+	   semantic.symbols.capacity != capacity) {
+		fprintf(stderr, "FAIL: %s: PARSE_IR changed the semantic context\n", test->name);
+		goto finish;
+	}
 	success = check_semantic(test, &semantic);
 
 finish:
@@ -264,7 +279,8 @@ int main(void) {
 	size_t failures = 0;
 	for(size_t i = 0; i < ARRLEN(tests); i++) {
 		if(run_test(&tests[i])) {
-			printf("PASS: %s (%zu semantic errors)\n", tests[i].name, tests[i].error_count);
+			printf("PASS: %s (%zu semantic errors after both passes)\n",
+				tests[i].name, tests[i].error_count);
 		} else {
 			fprintf(stderr, "FAIL: %s\n", tests[i].name);
 			failures++;

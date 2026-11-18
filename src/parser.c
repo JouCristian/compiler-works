@@ -180,7 +180,7 @@ static bool parser_factor(Parser *parser, Operand *result) {
 	return parser_fail(parser,"'(',identifier or number");
 }
 
-static bool parser_emit_arithmetic(Parser *parser, IRop op, Operand *left, Operand right) {
+static bool parser_emit_binary(Parser *parser, IRop op, Operand *left, Operand right) {
 	IRTable *table = &parser->semantic->irs;
 	Operand temp = ir_new_temp(table);
 	IRquad quad = {op, *left, right, temp};
@@ -203,7 +203,7 @@ static bool parser_term(Parser *parser, Operand *result) {
 
 		Operand right;
 		if(!parser_factor(parser,&right)) return false;
-		if(parser_ir_enabled(parser) && !parser_emit_arithmetic(parser,op,result,right))
+		if(parser_ir_enabled(parser) && !parser_emit_binary(parser,op,result,right))
 			return false;
 	}
 
@@ -223,27 +223,41 @@ static bool parser_arithmetic_expression(Parser *parser, Operand *result) {
 
 		Operand right;
 		if(!parser_term(parser,&right)) return false;
-		if(parser_ir_enabled(parser) && !parser_emit_arithmetic(parser,op,result,right))
+		if(parser_ir_enabled(parser) && !parser_emit_binary(parser,op,result,right))
 			return false;
 	}
 
 	return true;
 }
 
-static bool parser_relop(Parser *parser) {
-	const char *ops[] = {">","<",">=","<=","==","!="};
+static bool parser_relop(Parser *parser, IRop *op) {
+	const struct {
+		const char *lexeme;
+		IRop op;
+	} ops[] = {{">",IR_GT},{"<",IR_LT},{">=",IR_GET},{"<=",IR_LET},{"==",IR_EQ},{"!=",IR_NEQ}};
 
 	for(size_t i = 0; i < ARRLEN(ops); i++) {
-		if(parser_match(parser,TOKEN_OPERATOR,ops[i])) return true;
+		if(parser_match(parser,TOKEN_OPERATOR,ops[i].lexeme)) {
+			*op = ops[i].op;
+			return true;
+		}
 	}
 
 	return parser_fail(parser,"'>','<','>=','<=','==' or '!='");
 }
 
-bool parser_bool_expression(Parser *parser) {
-	return parser_arithmetic_expression(parser,NULL) &&
-		parser_relop(parser) &&
-		parser_arithmetic_expression(parser,NULL);
+static bool parser_bool_expression(Parser *parser, Operand *result) {
+	Operand left, right;
+	IRop op;
+	if(!parser_arithmetic_expression(parser,&left) ||
+	   !parser_relop(parser,&op) ||
+	   !parser_arithmetic_expression(parser,&right))
+		return false;
+	if(parser_ir_enabled(parser)) {
+		if(!parser_emit_binary(parser,op,&left,right)) return false;
+		*result = left;
+	}
+	return true;
 }
 
 static bool parser_assignment_expression(Parser *parser) {
@@ -349,11 +363,32 @@ static bool parser_declaration_stat(Parser *parser) {
 		parser_expect(parser,TOKEN_DELIMITER,";");
 }
 
+static const Operand no_operand = {.kind = OPERAND_NONE};
+
+static bool parser_new_label(Parser *parser, Operand *label) {
+	*label = ir_new_label(&parser->semantic->irs);
+	if(label->kind == OPERAND_LABEL) return true;
+	parser->semantic->resource_failed = true;
+	return false;
+}
+
+static bool parser_emit_control(Parser *parser, IRop op, Operand condition, Operand label) {
+	IRquad quad = {op, condition, no_operand, label};
+	if(ir_table_append(&parser->semantic->irs,&quad)) return true;
+	parser->semantic->resource_failed = true;
+	return false;
+}
+
 static bool parser_if_stat(Parser *parser) {
+	bool emitting = parser_ir_enabled(parser);
+	Operand condition, end;
 	if(!parser_expect(parser,TOKEN_KEYWORD,"if") ||
 	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
-	   !parser_bool_expression(parser) ||
+	   !parser_bool_expression(parser,&condition) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
+		return false;
+	if(emitting && (!parser_new_label(parser,&end) ||
+	   !parser_emit_control(parser,IR_BRF,condition,end)))
 		return false;
 	SymbolTable *table = parser_check_enabled(parser)
 		? &parser->semantic->symbols : NULL;
@@ -374,11 +409,8 @@ static bool parser_if_stat(Parser *parser) {
 		}
 	}
 	//analysis Then branch
-	if(!parser_statement(parser)) {
-		free(before);
-		free(after_then);
-		return false;
-	}
+	bool success = false;
+	if(!parser_statement(parser)) goto finish;
 
 	for(size_t i = 0; i < count; i++) {
 		after_then[i] = table->symbols[i].initialized;
@@ -387,29 +419,41 @@ static bool parser_if_stat(Parser *parser) {
 
 	//Else branch
 	if(parser_match(parser,TOKEN_KEYWORD,"else")) {
-		if(!parser_statement(parser)) {
-			free(before);
-			free(after_then);
-			return false;
+		if(emitting) {
+			Operand else_label = end;
+			if(!parser_new_label(parser,&end) ||
+			   !parser_emit_control(parser,IR_BR,no_operand,end) ||
+			   !parser_emit_control(parser,IR_LABEL,no_operand,else_label))
+				goto finish;
 		}
+		if(!parser_statement(parser)) goto finish;
 
 		for(size_t i = 0; i < count; i++) {
 			table->symbols[i].initialized = 
 				after_then[i] && table->symbols[i].initialized;
 		}
 	}
+	success = !emitting || parser_emit_control(parser,IR_LABEL,no_operand,end);
 
+finish:
 	free(before);
 	free(after_then);
-	return true;
+	return success;
 }
 
 static bool parser_while_stat(Parser *parser) {
+	bool emitting = parser_ir_enabled(parser);
+	Operand start, end, condition;
 	if(!parser_expect(parser,TOKEN_KEYWORD,"while") ||
-	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
-	   !parser_bool_expression(parser) ||
+	   !parser_expect(parser,TOKEN_DELIMITER,"("))
+		return false;
+	if(emitting && (!parser_new_label(parser,&start) || !parser_new_label(parser,&end) ||
+	   !parser_emit_control(parser,IR_LABEL,no_operand,start)))
+		return false;
+	if(!parser_bool_expression(parser,&condition) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
+	if(emitting && !parser_emit_control(parser,IR_BRF,condition,end)) return false;
 	SymbolTable *table = parser_check_enabled(parser)
 		? &parser->semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
@@ -429,14 +473,22 @@ static bool parser_while_stat(Parser *parser) {
 		table->symbols[i].initialized = before[i];
 	}
 	free(before);
-	return success;
+	return success && (!emitting ||
+		(parser_emit_control(parser,IR_BR,no_operand,start) &&
+		 parser_emit_control(parser,IR_LABEL,no_operand,end)));
 }
 
 static bool parser_for_stat(Parser *parser) {
+	bool emitting = parser_ir_enabled(parser);
+	Operand start, end, condition;
 	if(!parser_expect(parser,TOKEN_KEYWORD,"for") ||
 	   !parser_expect(parser,TOKEN_DELIMITER,"(") ||
-	   !parser_assignment_stat(parser) ||
-	   !parser_bool_expression(parser) ||
+	   !parser_assignment_stat(parser))
+		return false;
+	if(emitting && (!parser_new_label(parser,&start) || !parser_new_label(parser,&end) ||
+	   !parser_emit_control(parser,IR_LABEL,no_operand,start)))
+		return false;
+	if(!parser_bool_expression(parser,&condition) ||
 	   !parser_expect(parser,TOKEN_DELIMITER,";"))
 		return false;
 	size_t update_pos = parser->pos;
@@ -449,6 +501,7 @@ static bool parser_for_stat(Parser *parser) {
 	if(!update_ok ||
 	   !parser_expect(parser,TOKEN_DELIMITER,")"))
 		return false;
+	if(emitting && !parser_emit_control(parser,IR_BRF,condition,end)) return false;
 	SymbolTable *table = parser_check_enabled(parser)
 		? &semantic->symbols : NULL;
 	size_t count = table != NULL ? table->count : 0;
@@ -475,7 +528,9 @@ static bool parser_for_stat(Parser *parser) {
 		table->symbols[i].initialized = before[i];
 	}
 	free(before);
-	return success;
+	return success && (!emitting ||
+		(parser_emit_control(parser,IR_BR,no_operand,start) &&
+		 parser_emit_control(parser,IR_LABEL,no_operand,end)));
 }
 
 static bool parser_compound_stat(Parser *parser) {
@@ -559,12 +614,20 @@ bool parser_program(Parser *parser) {
 	IRTable *table = &parser->semantic->irs;
 	size_t count = table->count;
 	size_t quad_count = table->quad_count;
+	size_t label_count = table->label_count;
 	size_t temp_count = table->temp_count;
-	if(parser_parse_program(parser)) return true;
+	size_t next_label = table->next_label;
+	if(parser_parse_program(parser)) {
+		if(ir_table_validate(table)) return true;
+		parser->failed = true;
+		snprintf(parser->error_message,ERROR_MSG_LEN,"Invalid IR label or branch target");
+	}
 
 	table->count = count;
 	table->quad_count = quad_count;
+	table->label_count = label_count;
 	table->temp_count = temp_count;
+	table->next_label = next_label;
 	return false;
 }
 

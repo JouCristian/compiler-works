@@ -2,3 +2,5 @@ build/
 lex.txt
 *.o
 /docs/syntax-analysis/results/syntax-errors.txt
+/docs/semantic-analysis/results/quadruples.txt
+/docs/semantic-analysis/results/quadruples.txt.*

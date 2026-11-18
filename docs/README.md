@@ -24,11 +24,19 @@
 | [终端截图索引](syntax-analysis/results/screenshots-manifest.md) | 原始测试 PNG 及对应行号 |
 | [语法错误日志快照](syntax-analysis/results/syntax-errors-snapshot.txt) | 16 次运行的原始首错记录 |
 
+## 实验三 · 语义分析与四元式
+
+| 文档 | 内容 |
+| --- | --- |
+| [实验总览](semantic-analysis/README.md) | 双遍解析、初始化检查、IR 格式、控制流及回归结果 |
+| [完整源程序](semantic-analysis/results/example.c) · [四元式快照](semantic-analysis/results/example-ir.txt) | 变量读写、算术优先级、`if/else`、`while` 和 `for` |
+
 ## 文件与验收约定
 
 - `theory/` 存放文法、数学推导和算法设计说明；`results/` 存放正式测试记录和截图。
 - `docs/lexical-analysis/lex.txt` 为 Lexer 运行产物，不纳入版本控制。
 - `docs/syntax-analysis/results/syntax-errors.txt` 是可追加、可由 `make clean` 清除的运行时日志；`syntax-errors-snapshot.txt` 是保留的验收快照。
+- `docs/semantic-analysis/results/quadruples.txt` 保存最近一次成功生成的四元式，可由 `make clean` 清除。`example-ir.txt` 是验收快照。
 - 教师原始语法测试文件保留错误，以便复现首错停止行为；最终成功结果来自逐轮修正版本。
 
 [返回项目主页](../README.md)

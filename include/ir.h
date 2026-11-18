@@ -46,12 +46,16 @@ typedef struct {
 	size_t quad_count;
 	size_t label_count;
 	size_t temp_count;
+	size_t next_label;
 } IRTable;
 
 void ir_table_init(IRTable *table);
 // Returns OPERAND_NONE if table is NULL or the temporary counter is exhausted.
 Operand ir_new_temp(IRTable *table);
+// Reserve a label before emitting its definition or branches to it.
+Operand ir_new_label(IRTable *table);
 bool ir_table_append(IRTable *table, const IRquad *quad);
+bool ir_table_validate(const IRTable *table);
 void ir_table_free(IRTable *table);
 
 #endif

@@ -8,7 +8,8 @@ INCLUDES := include/lexer.h include/ansi.h include/common.h include/parser.h inc
 TARGET := build/compiler
 TESTS ?= tests/lexer/test.c
 TEST_TARGETS := build/tests/parser/match_test build/tests/parser/expression_test \
-	build/tests/semantic/semantic_test build/tests/ir/temp_test build/tests/ir/arithmetic_test
+	build/tests/semantic/semantic_test build/tests/ir/temp_test build/tests/ir/label_test \
+	build/tests/ir/arithmetic_test
 
 .PHONY: all run test clean
 
@@ -25,9 +26,11 @@ build/tests/%: tests/%.c $(COMMON_SRCS) $(INCLUDES)
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $< $(COMMON_SRCS) -o $@
 
-test: $(TEST_TARGETS)
+test: $(TARGET) $(TEST_TARGETS)
 	@set -e; for test in $(TEST_TARGETS); do ./$$test; done
+	sh tests/ir/cli_test.sh
 
 clean:
 	rm -rf build
 	rm -f docs/syntax-analysis/results/syntax-errors.txt
+	rm -f docs/semantic-analysis/results/quadruples.txt

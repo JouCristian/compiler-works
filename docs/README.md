@@ -1,6 +1,8 @@
 # 课程实验文档
 
-本目录收录 Compiler Works 的实验设计、理论推导、测试数据及验收证据。项目入口与构建方式见[仓库 README](../README.md)。
+本目录收录 Compiler Works 三项课程实验的设计、理论推导、测试数据和归档证据。构建方式及贡献情况见[仓库 README](../README.md)。
+
+**完成情况：** 实验一、二已有阶段验收记录；实验三的开发与本地自动化回归已完成（64/64），尚无教师现场验收记录。实验三后期由 **OpenAI Codex** 协助开发，见[协作说明](semantic-analysis/README.md#开发与协作说明)。
 
 ## 实验一 · 词法分析
 
@@ -38,5 +40,7 @@
 - `docs/syntax-analysis/results/syntax-errors.txt` 是可追加、可由 `make clean` 清除的运行时日志；`syntax-errors-snapshot.txt` 是保留的验收快照。
 - `docs/semantic-analysis/results/quadruples.txt` 保存最近一次成功生成的四元式，可由 `make clean` 清除。`example-ir.txt` 是验收快照。
 - 教师原始语法测试文件保留错误，以便复现首错停止行为；最终成功结果来自逐轮修正版本。
+- 自动生成的 `lex.txt` 属于最近一次输入文件的扫描结果，而非累积日志；若用 Vim 打开后未刷新，运行结束可用 `:checktime` 检查磁盘更新。
+- 实验资料按其实际测试口径归档，开发自测与教师正式验收明确区分。
 
 [返回项目主页](../README.md)

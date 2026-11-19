@@ -2,7 +2,7 @@
 
 基于 **C11** 的编译原理课程实验项目，面向教学用途的简化类 C 语言，实现从词法识别、递归下降语法分析到语义检查和四元式生成的处理流程。
 
-实验一和实验二已完成阶段验收。实验三已实现语义检查和四元式生成，待验收。
+**项目状态：三项实验的程序和文档开发均已完成。** 实验一、二已有阶段验收归档；实验三已通过本地自动化回归（64/64），目前没有教师现场验收的归档证据。
 
 [快速开始](#快速开始) · [实验成果](#实验成果) · [实现架构](#实现架构) · [设计文档](#设计文档)
 
@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | **01 · 词法分析** | Token 识别、注释处理、错误定位、自动机设计 | **已完成** | [实验说明](docs/lexical-analysis/README.md) · [验收报告](docs/lexical-analysis/results/README.md) |
 | **02 · 语法分析** | 文法改造、FIRST/FOLLOW、递归下降、错误日志 | **已完成** | [实验说明](docs/syntax-analysis/README.md) · [验收报告](docs/syntax-analysis/results/README.md) |
-| **03 · 语义分析** | 声明和初始化检查、双遍解析、四元式及控制流 | 已实现，待验收 | [实验说明](docs/semantic-analysis/README.md) · [验收样例](docs/semantic-analysis/results/example.c) · [四元式快照](docs/semantic-analysis/results/example-ir.txt) |
+| **03 · 语义分析** | 声明和初始化检查、双遍解析、四元式及控制流 | **开发完成 · 本地回归通过** | [实验说明](docs/semantic-analysis/README.md) · [验收样例](docs/semantic-analysis/results/example.c) · [四元式快照](docs/semantic-analysis/results/example-ir.txt) |
 
 ## 实验成果
 
@@ -23,6 +23,20 @@
 | [七张验收截图及 Token 快照](docs/lexical-analysis/results/README.md) | [17 张实测截图及错误日志快照](docs/syntax-analysis/results/README.md) |
 
 > 实验二采用“遇到首个语法错误即停止”的策略。教师原始测试文件包含故意设置的错误；最终成功截图来自**逐轮修正后的版本**，并非原始文件直接通过。
+
+### 实验三 · 语义分析和中间代码
+
+在已有 Lexer 与 Parser 上实现 `PARSE_CHECK`（语法及语义检查）和 `PARSE_IR`（四元式生成）两遍解析。测试样例同时覆盖算术、六种关系比较、`read/write` 及 `if/else`、`while`、`for` 控制流。完整样例生成 **27 条四元式记录**，详见[源程序](docs/semantic-analysis/results/example.c)与[输出快照](docs/semantic-analysis/results/example-ir.txt)。
+
+```text
+0001 (*, a, 3, t0)
+0002 (+, 2, t0, t1)
+0003 (=, t1, _, a)
+0004 (>, a, 5, t2)
+0005 (brf, t2, _, L0)
+```
+
+`make all test` 本地共 **64 项检查通过**；这是开发自测，不等于教师现场验收。
 
 ## 实现架构
 
@@ -114,4 +128,10 @@ cat docs/syntax-analysis/results/syntax-errors.txt
 | [语法文法](docs/syntax-analysis/theory/grammar-specification.md) · [FIRST/FOLLOW](docs/syntax-analysis/theory/first-follow-sets.md) | 文法改造与预测分析理论 |
 | [语义分析与四元式](docs/semantic-analysis/README.md) | 双遍解析、控制流布局、错误处理及测试结果 |
 
-项目实现课程指导书定义的简化类 C 语言，处理流程止于四元式。自动机图用于词法理论分析，实际 Lexer 采用手写扫描。
+## 开发记录与协作说明
+
+- **作者：** [JouCristian](https://github.com/JouCristian)。实验一、二主要由作者设计、实现和归档；实验三的整体方案、符号表、Operand / IRTable 设计及前期语义分析也由作者逐步推进。
+- **实验三的 CodeX 协助：** 受课程实验时间限制，后期使用 **OpenAI Codex** 完善关系运算与控制流四元式、命令行输出、回归测试及文档。作者负责需求、设计约束、代码审阅和本地验收；不将这部分实现误写为完全独立手工完成。
+- **版本归档：** 已有 [`lab1-v1.0.0`](https://github.com/JouCristian/compiler-works/tree/lab1-v1.0.0) 和 [`lab2-v1.0.0`](https://github.com/JouCristian/compiler-works/tree/lab2-v1.0.0)；实验三按同一规则使用 `lab3-v1.0.0` 标签记录完成版本。
+
+**范围说明：** 项目只支持课程指导书定义的简化类 C 语言，非完整 C 编译器。处理流程止于四元式，**未实现 IR 解释执行、汇编或机器码生成**。自动机图用于词法理论分析，实际 Lexer 采用手写扫描。
